@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "GameSniper — Cazador de oportunidades de juegos",
+  "short_name": "GameSniper",
+  "version": "3.0.0",
+  "description": "Encuentra el precio más barato de cualquier juego en segundos. Compara Steam, Epic Games y Microsoft Store, detecta precios regionales mal configurados, posibles errores de precio y ofertas ocultas antes de que desaparezcan.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "GameSniper — compará precios",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage", "notifications", "alarms"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://store.steampowered.com/app/*",
+        "https://store.epicgames.com/p/*",
+        "https://store.epicgames.com/*/p/*"
+      ],
+      "js": ["shared/util.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": [
+    "https://store.steampowered.com/*",
+    "https://store.epicgames.com/*",
+    "https://storeedgefd.dsx.mp.microsoft.com/*",
+    "https://dolarapi.com/*",
+    "https://open.er-api.com/*"
+  ]
+}

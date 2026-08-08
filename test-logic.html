@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>test-logic</title></head>
+<body>
+<pre id="out"></pre>
+<script src="shared/util.js"></script>
+<script src="shared/catalog.js"></script>
+<script src="shared/stores.js"></script>
+<script src="shared/db.js"></script>
+<script src="content.js"></script>
+<script>
+(async () => {
+'use strict';
+const out = document.getElementById('out');
+const results = [];
+function assert(name, cond, extra) {
+  results.push((cond ? 'PASS' : 'FAIL') + ' ' + name + (extra ? ' :: ' + extra : ''));
+}
+
+// --- matching ---
+const haloCands = [
+  { title: 'Halo: Combat Evolved Anniversary' },
+  { title: 'Halo: The Master Chief Collection' },
+  { title: 'Halo 5: Guardians' },
+];
+const bestHalo = pickBest('Halo: The Master Chief Collection', haloCands);
+assert('pickBest Halo MCC', bestHalo && bestHalo.title === 'Halo: The Master Chief Collection', bestHalo && bestHalo.title);
+
+const fhCands = [
+  { title: 'Forza Horizon 5: Edición Estándar' },
+  { title: 'Forza Horizon 5 Deluxe Edition' },
+  { title: 'Forza Horizon 5 Premium Edition' },
+];
+const bestFh = pickBest('Forza Horizon 5', fhCands);
+assert('pickBest FH5 estándar', bestFh && /estándar|standard/i.test(bestFh.title), bestFh && bestFh.title);
+
+const badCands = [{ title: 'Cyberpunk SFX Pack' }, { title: 'Cyberpunk Hacker' }];
+assert('pickBest rechaza ruido', pickBest('Cyberpunk 2077', badCands) === null);
+
+// --- pickBest: desempate entre variante F2P gratis y el juego completo ---
+// La API de MS Store devuelve DOS resultados con el MISMO título (ej. "Halo Infinite"
+// gratis-multijugador vs el juego completo incluido con Game Pass). Al empatar en
+// score, debe ganar el que tiene precio de compra o Game Pass, NO la variante gratis.
+const haloReal = [
+  { title: 'Halo Infinite', price: 0, free: true, gamePass: false, url: 'ms-f2p' },
+  { title: 'Halo Infinite', price: 53999, free: false, gamePass: true, url: 'ms-full', passName: 'Xbox Game Pass' },
+];
+const haloBest = pickBest('Halo Infinite', haloReal);
+assert('pickBest empate: gana el juego completo (Game Pass) sobre la variante gratis',
+  haloBest && haloBest.url === 'ms-full', haloBest && haloBest.url);
+assert('pickBest empate: no queda gratis', haloBest && haloBest.free === false);
+// variante gratis primera + juego completo después → también gana el completo
+const haloReal2 = [...haloReal].reverse();
+assert('pickBest empate: orden invertido sigue ganando el completo',
+  pickBest('Halo Infinite', haloReal2).url === 'ms-full');
+// si SOLO existe la variante gratis (F2P real como Fall Guys), sigue siendo gratis
+assert('pickBest solo variante gratis → gratis',
+  pickBest('Fall Guys', [{ title: 'Fall Guys', price: 0, free: true }]).free === true);
+// score mayor siempre gana aunque sea gratis (la variante F2P de otro juego no desplaza)
+const scoreWins = [
+  { title: 'Halo Infinite', price: 0, free: true },
+  { title: 'Halo Infinite: Campaña', price: 53999 },
+];
+assert('pickBest score manda: título exacto gratis gana a título con sufijo con precio',
+  pickBest('Halo Infinite', scoreWins).title === 'Halo Infinite');
+
+// --- formato / conversión ---
+assert('fmtARS 3999 contiene 3.999', fmtARS(3999).includes('3.999'));
+assert('fmtUSD cents 4799', fmtUSD(4799) === '$47.99');
+assert('arsFromUsdCents 4799 @1560', Math.round(arsFromUsdCents(4799, 1560)) === 74864);
+assert('arsFromUsdCents null sin rate', arsFromUsdCents(100, null) === null);
+
+// --- compareForBug (detección de precio bug MS) ---
+const c1 = compareForBug({ msArs: 4000, bestUsdArs: 10000 });
+assert('compareForBug 60% ahorro → bug', c1.bug === true && c1.savings === 60, JSON.stringify(c1));
+const c2 = compareForBug({ msArs: 7500, bestUsdArs: 10000 });
+assert('compareForBug 25% ahorro → no bug', c2.bug === false && c2.savings === 25, JSON.stringify(c2));
+assert('compareForBug sin MS → no bug', compareForBug({ msArs: null, bestUsdArs: 10000 }).bug === false);
+assert('compareForBug sin USD → no bug', compareForBug({ msArs: 4000, bestUsdArs: null }).bug === false);
+assert('compareForBug MS 0 → no bug', compareForBug({ msArs: 0, bestUsdArs: 10000 }).bug === false);
+assert('compareForBug umbral configurable 50%', compareForBug({ msArs: 5000, bestUsdArs: 10000 }, 0.5).bug === true);
+
+// --- detectType (bug vs regional) ---
+const t1 = detectType({ msArs: 4000, bestUsdArs: 10000 });
+assert('detectType 60% ahorro → bug', t1.type === 'bug' && t1.savings === 60, JSON.stringify(t1));
+const t2 = detectType({ msArs: 2000, bestUsdArs: 10000 });
+assert('detectType 80% ahorro → regional', t2.type === 'regional' && t2.savings === 80, JSON.stringify(t2));
+assert('detectType sin datos → none', detectType({ msArs: null, bestUsdArs: 10000 }).type === 'none');
+assert('detectType con umbral 50%', detectType({ msArs: 5000, bestUsdArs: 10000 }, 50).type === 'bug');
+assert('detectType 45% con umbral 50 → none', detectType({ msArs: 5500, bestUsdArs: 10000 }, 50).type === 'none');
+
+// --- correctionRisk ---
+const r1 = correctionRisk({ type: 'regional', savings: 80, ageHours: 2, trend: 0 });
+assert('correctionRisk alto → alta', r1.level === 'alta', JSON.stringify(r1));
+const r2 = correctionRisk({ type: 'bug', savings: 45, ageHours: 72, trend: 0 });
+assert('correctionRisk 45% viejo → media/baja', r2.level === 'media' || r2.level === 'baja', JSON.stringify(r2));
+assert('correctionRisk sin ahorro → baja', correctionRisk({ type: 'none', savings: 0 }).level === 'baja');
+assert('correctionRisk risk en [0, 0.95]', r1.risk >= 0 && r1.risk <= 0.95);
+
+// --- opportunityScore ---
+const s1 = opportunityScore({ type: 'regional', savings: 80, risk: 0.8, popularity: 0.95, ageHours: 24, trend: -0.5, discount: 40 });
+assert('opportunityScore alto > 70', s1 >= 70, s1);
+const s2 = opportunityScore({ type: 'none', savings: 0 });
+assert('opportunityScore sin ahorro → 0', s2 === 0, s2);
+const s3 = opportunityScore({ type: 'bug', savings: 50, risk: 0.4, popularity: 0.5, ageHours: 24, trend: 0, discount: 0 });
+assert('opportunityScore medio 30-70', s3 >= 30 && s3 <= 70, s3);
+assert('opportunityScore en [0, 100]', s1 >= 0 && s1 <= 100);
+assert('opportunityScore sin type pero con ahorro > 0', opportunityScore({ type: 'none', savings: 10 }) >= 0);
+
+// --- historial de precios ---
+const H0 = [];
+const now = Date.now();
+let H = captureHistory(H0, { ts: now - 86400e3, msArs: 10000, bestUsdArs: 20000, savings: 50 });
+H = captureHistory(H, { ts: now - 3600e3, msArs: 8000, bestUsdArs: 20000, savings: 60 });
+assert('historial crece con precios distintos', H.length === 2, H.length);
+// duplicado dentro de 30 min con el mismo precio → misma referencia (no crece)
+const Hdup = captureHistory(H, { ts: now - 3600e3 + 60e3, msArs: 8000, bestUsdArs: 20000, savings: 60 });
+assert('historial no duplica precio igual reciente', Hdup.length === 2 && Hdup === H, Hdup.length);
+// precio distinto después de 1 h → crece y encola
+const H2 = captureHistory(H, { ts: now, msArs: 7000, bestUsdArs: 20000, savings: 65 });
+assert('historial agrega precio nuevo', H2.length === 3 && H2 !== H, H2.length);
+assert('priceAt 24h → 10000', priceAt(H, 24 * 3600e3) === 10000);
+assert('priceAt 0h (ahora) → 8000', priceAt(H, 0) === 8000);
+assert('priceTrend bajando > 0', priceTrend(H) > 0, priceTrend(H));
+assert('priceTrend subiendo < 0', priceTrend([{ msArs: 5000 }, { msArs: 8000 }]) < 0);
+assert('dealAgeHours usa última captura', dealAgeHours(H) >= 0);
+const sp = sparklinePath([5000, 4000, 3000]);
+assert('sparklinePath genera path', typeof sp === 'string' && sp.length > 0, sp);
+assert('sparklinePath con <2 valores → vacío', sparklinePath([5000]) === '');
+assert('popularityOf hit = 0.95', popularityOf('Cyberpunk 2077') === 0.95);
+assert('popularityOf resto = 0.55', popularityOf('Juego Desconocido') === 0.55);
+
+// --- registro de tiendas (escalable) ---
+assert('STORES tiene steam/epic/ms', !!STORES.steam && !!STORES.epic && !!STORES.ms);
+assert('STORES steam es batch', STORES.steam.batch === true);
+assert('STORES ms no es batch y tiene currency', STORES.ms.batch === false && STORES.ms.currency === 'ARS');
+assert('fetchStore devuelve mapa para steam (batch)', typeof fetchStore === 'function');
+
+// --- clasificación por sets ---
+assert('isAaa Cyberpunk 2077', isAaa('Cyberpunk 2077') === true);
+assert('isAaa Cuphead (no AAA)', isAaa('Cuphead') === false);
+assert('isCoop It Takes Two', isCoop('It Takes Two') === true);
+assert('isCoop Half-Life 2 (no coop)', isCoop('Half-Life 2') === false);
+assert('isTopRated The Witcher 3', isTopRated('The Witcher 3: Wild Hunt') === true);
+assert('isTopRated juego genérico', isTopRated('Juego X') === false);
+
+// --- histStats / isHistoricLow / priceRoseToday ---
+const tNow = Date.now();
+const HH = [
+  { ts: tNow - 90 * 86400e3, msArs: 12000 },
+  { ts: tNow - 30 * 86400e3, msArs: 8000 },
+  { ts: tNow - 2 * 86400e3, msArs: 10000 },
+  { ts: tNow, msArs: 5000 },
+];
+const hs = histStats(HH, 5000);
+assert('histStats min 5000', hs.min === 5000, hs && hs.min);
+assert('histStats max 12000', hs.max === 12000, hs && hs.max);
+assert('histStats avg 8750', hs.avg === 8750, hs && hs.avg);
+assert('histStats más barato que 100%', hs.cheaperPct === 100, hs && hs.cheaperPct);
+assert('histStats última vez 5000', hs.lastAt == null, hs && hs.lastAt); // solo la actual tiene 5000
+const hs2 = histStats(HH, 8000);
+assert('histStats 8000: más barato que 50%', hs2.cheaperPct === 50, hs2 && hs2.cheaperPct);
+assert('histStats 8000: última vez hace 30d', hs2.lastAt === tNow - 30 * 86400e3, hs2 && hs2.lastAt);
+assert('isHistoricLow actual 5000', isHistoricLow(HH, 5000) === true);
+assert('isHistoricLow 7000 (no es min)', isHistoricLow(HH, 7000) === false);
+assert('isHistoricLow sin historial', isHistoricLow([], 100) === false);
+assert('isHistoricLow gratis (0) no cuenta', isHistoricLow(HH, 0) === false);
+assert('isHistoricLow null no cuenta', isHistoricLow(HH, null) === false);
+
+// --- isHistoricLowAny (mínimo histórico en CUALQUIER tienda, ARS) ---
+const HHAny = [
+  { ts: tNow - 90 * 86400e3, msArs: 12000, bestArs: 11000 }, // Steam/Epic fue más barato
+  { ts: tNow - 30 * 86400e3, msArs: 8000, bestArs: 7500 },   // min any = 7500 (MS solo 8000)
+  { ts: tNow - 2 * 86400e3, msArs: 10000, bestArs: 7500 },
+  { ts: tNow, msArs: 9000, bestArs: 7500 },
+];
+const hsAny = histStats(HHAny, 7500);
+assert('histStats bestMin = 7500 (min en cualquier tienda)', hsAny.bestMin === 7500, hsAny && hsAny.bestMin);
+assert('histStats bestMin null sin entradas bestArs', histStats([{ ts: tNow, msArs: 5000 }], 5000).bestMin === null);
+assert('isHistoricLowAny 7500 = min any (aunque MS solo sea 9000)', isHistoricLowAny(HHAny, 7500) === true);
+assert('isHistoricLowAny 5000 = nuevo min (más bajo)', isHistoricLowAny(HHAny, 5000) === true);
+assert('isHistoricLowAny 7600 no es min any', isHistoricLowAny(HHAny, 7600) === false);
+assert('isHistoricLowAny sin historial', isHistoricLowAny([], 100) === false);
+assert('isHistoricLowAny sin entradas bestArs', isHistoricLowAny([{ ts: tNow, msArs: 5000 }], 5000) === false);
+assert('isHistoricLowAny gratis (0) no cuenta', isHistoricLowAny(HHAny, 0) === false);
+assert('isHistoricLowAny null no cuenta', isHistoricLowAny(HHAny, null) === false);
+
+// --- isWeeklyLow (min de la última semana, MS) ---
+const HHWeek = [
+  { ts: tNow - 15 * 86400e3, msArs: 3000 },  // viejo: no cuenta para la semana
+  { ts: tNow - 5 * 86400e3, msArs: 6000 },
+  { ts: tNow - 2 * 86400e3, msArs: 4500 },
+];
+assert('isWeeklyLow 4500 = min de la semana (iguala)', isWeeklyLow(HHWeek, 4500) === true);
+assert('isWeeklyLow 4000 = nuevo min semanal (ignora el 3000 viejo)', isWeeklyLow(HHWeek, 4000) === true);
+assert('isWeeklyLow 4600 no es min semanal', isWeeklyLow(HHWeek, 4600) === false);
+assert('isWeeklyLow sin historial semanal', isWeeklyLow([{ ts: tNow - 30 * 86400e3, msArs: 1000 }], 1000) === false);
+assert('isWeeklyLow gratis (0) no cuenta', isWeeklyLow(HHWeek, 0) === false);
+assert('isWeeklyLow null no cuenta', isWeeklyLow(HHWeek, null) === false);
+assert('isWeeklyLow sin historial', isWeeklyLow([], 5000) === false);
+
+// captureHistory ahora considera bestArs para no duplicar (min en cualquier tienda)
+const HBest = [
+  { ts: now - 3600e3, msArs: 8000, bestArs: 8000 },
+];
+const HBest2 = captureHistory(HBest, { ts: now, msArs: 8000, bestArs: 7500 }); // bajó Steam/Epic
+assert('captureHistory agrega si bestArs cambió', HBest2.length === 2 && HBest2 !== HBest, HBest2.length);
+const HBest3 = captureHistory(HBest2, { ts: now + 60e3, msArs: 8000, bestArs: 7500 }); // igual en 30 min
+assert('captureHistory no duplica si msArs y bestArs iguales', HBest3.length === 2 && HBest3 === HBest2, HBest3.length);
+assert('priceRoseToday subió', priceRoseToday([{ ts: tNow - 2 * 86400e3, msArs: 4000 }, { ts: tNow, msArs: 6000 }]) === true);
+assert('priceRoseToday bajó', priceRoseToday([{ ts: tNow - 2 * 86400e3, msArs: 6000 }, { ts: tNow, msArs: 4000 }]) === false);
+assert('priceRoseToday sin datos', priceRoseToday([]) === false);
+
+// --- scoreRating / isUrgent ---
+assert('scoreRating 90 → excellent', scoreRating(90).cls === 'excellent', JSON.stringify(scoreRating(90)));
+assert('scoreRating 65 → good', scoreRating(65).cls === 'good');
+assert('scoreRating 45 → ok', scoreRating(45).cls === 'ok');
+assert('scoreRating 10 → low', scoreRating(10).cls === 'low');
+assert('isUrgent savings 80', isUrgent({ type: 'bug', savings: 80, risk: 0.5 }) === true);
+assert('isUrgent regional 65', isUrgent({ type: 'regional', savings: 65, risk: 0.5 }) === true);
+assert('isUrgent savings 40 (no)', isUrgent({ type: 'bug', savings: 40, risk: 0.5 }) === false);
+assert('isUrgent sin ahorro', isUrgent({ type: 'none', savings: null }) === false);
+
+// --- wishEvents ---
+const prevW = { msArs: 10000, bestUsdArs: 20000, epicArs: 18000, type: 'none', bestStore: 'steam', histLow: false };
+const currW = { msArs: 4000, bestUsdArs: 20000, epicArs: 18000, type: 'bug', bestStore: 'ms', histLow: true };
+const evs = wishEvents(prevW, currW);
+assert('wishEvents: bug + drop + histLow + msCheapest',
+  evs.includes('bug') && evs.includes('drop') && evs.includes('histLow') && evs.includes('msCheapest'),
+  evs.join(','));
+assert('wishEvents: sin cambios → vacío', wishEvents(prevW, prevW).length === 0);
+assert('wishEvents: Epic gratis', wishEvents(prevW, { ...prevW, epicArs: 0 }).includes('epicFree'));
+assert('wishEvents: drop pequeño no dispara', wishEvents({ ...prevW, msArs: 10000 }, { ...prevW, msArs: 9200 }).length === 0);
+// primer sync sin snapshot previo: NO dispara nada (línea base, evita spam al desear)
+assert('wishEvents: primer sync sin prev → vacío', wishEvents(null, currW).length === 0, wishEvents(null, currW).join(','));
+assert('wishEvents: bug exige prev (transición real)', wishEvents({ ...prevW, type: 'none' }, { ...currW, type: 'bug' }).includes('bug'));
+
+// --- parseMsCard: shape REAL de la API de MS Store (verificado contra la API) ---
+// Forza Horizon 5 Standard: DisplayPrice "Incluido" + PlaintextPassName + MSRP real
+const forzaCard = {
+  Title: 'Forza Horizon 5: Edición Estándar',
+  ProductId: '9NKX70BBCDRN',
+  DisplayPrice: 'Incluido',
+  PlaintextPassName: 'Xbox Game Pass',
+  GlyphTextPassName: 'StoreGlyphXboxGamePassInline',
+  SkusSummary: [{ SkuId: '0010', MSRP: 26399, SalePrices: [{ Price: 26399 }, { Conditions: { Type: 'EntitlementId', Ids: ['CFQ7TTC0K6L8'] } }] }],
+};
+const forza = parseMsCard(forzaCard);
+assert('parseMsCard Forza: gamePass true', forza.gamePass === true);
+assert('parseMsCard Forza: precio de compra real', forza.price === 26399);
+assert('parseMsCard Forza: kind purchase (no gratis)', storeOfferKind(forza) === 'purchase');
+assert('parseMsCard Forza: no free', forza.free === false);
+
+// Fall Guys: DisplayPrice "Gratis", sin pass name, MSRP 0 → gratis real
+const fallGuys = parseMsCard({ Title: 'Fall Guy 2', ProductId: '9XXX', DisplayPrice: 'Gratis', SkusSummary: [{ MSRP: 0, SalePrices: [{ Price: 0 }] }] });
+assert('parseMsCard Fall Guys: free true', fallGuys.free === true);
+assert('parseMsCard Fall Guys: no gamePass', fallGuys.gamePass === false);
+assert('parseMsCard Fall Guys: kind free', storeOfferKind(fallGuys) === 'free');
+
+// Game Pass-only sin precio de compra (MSRP 0 + Conditions): kind gamepass, nunca gratis
+const gpOnly = parseMsCard({
+  Title: 'Solo Game Pass', ProductId: '9GP1', DisplayPrice: 'Incluido',
+  PlaintextPassName: 'Xbox Game Pass',
+  SkusSummary: [{ SkuId: '0010', MSRP: 0, SalePrices: [{ Price: 0, Conditions: { Type: 'EntitlementId', Ids: ['X'] } }] }],
+});
+assert('parseMsCard GP-only: kind gamepass', storeOfferKind(gpOnly) === 'gamepass');
+assert('parseMsCard GP-only: no es gratis', gpOnly.free === false);
+assert('parseMsCard GP-only: no es purchase', storeOfferKind(gpOnly) !== 'purchase');
+
+// Pago normal sin Game Pass
+const pago = parseMsCard({ Title: 'Cyberpunk 2077', ProductId: '9PAGO', DisplayPrice: '$ 45.999,00', SkusSummary: [{ MSRP: 45999, SalePrices: [{ Price: 45999 }] }] });
+assert('parseMsCard pago: purchase', storeOfferKind(pago) === 'purchase');
+assert('parseMsCard pago: no gamePass ni free', pago.gamePass === false && pago.free === false);
+
+// Game Pass-only SIN passName (DisplayPrice "Gratis" + condiciones EntitlementId +
+// MSRP 0): nunca debe clasificarse como gratis real
+const gpNoPass = parseMsCard({
+  Title: 'Solo Game Pass sin nombre', ProductId: '9GP2', DisplayPrice: 'Gratis',
+  SkusSummary: [{ SkuId: '0010', MSRP: 0, SalePrices: [{ Price: 0, Conditions: { Type: 'EntitlementId', Ids: ['X'] } }] }],
+});
+assert('parseMsCard GP-only sin passName: no free', gpNoPass.free === false);
+assert('parseMsCard GP-only sin passName: gamePass true', gpNoPass.gamePass === true);
+assert('parseMsCard GP-only sin passName: kind gamepass', storeOfferKind(gpNoPass) === 'gamepass');
+
+// F2P real (DisplayPrice "Gratis", MSRP 0, sin condiciones) SÍ es gratis
+const f2pReal = parseMsCard({ Title: 'Free Game', ProductId: '9F2P', DisplayPrice: 'Gratis', SkusSummary: [{ MSRP: 0, SalePrices: [{ Price: 0 }] }] });
+assert('parseMsCard F2P real sigue siendo free', f2pReal.free === true && f2pReal.gamePass === false);
+// F2P sin SalePrices (array vacío) también gratis — el guard de gpOnly no lo rompe
+const f2pNoSales = parseMsCard({ Title: 'Free 2', ProductId: '9F2X', DisplayPrice: 'Gratis', SkusSummary: [{ MSRP: 0 }] });
+assert('parseMsCard F2P sin sales sigue free', f2pNoSales.free === true);
+
+// --- ruido de MS Store: guías/trailers/DLC no deben matchear el juego ---
+assert('isMsNoise guía del juego (Cult of the Lamb)', isMsNoise('Cult of the Lamb: The Ultimate Guide') === true);
+assert('isMsNoise el juego real NO es ruido', isMsNoise('Cult of the Lamb') === false);
+assert('isMsNoise trailer', isMsNoise("Another Crab's Treasure - Launch Trailer") === true);
+assert('isMsNoise accolades', isMsNoise('Halo MCC: Accolades') === true);
+assert('isMsNoise add-on pack', isMsNoise('Paquete de complementos Premium de Forza Horizon 5') === true);
+assert('isMsNoise upgrade', isMsNoise('Starfield Premium Edition Upgrade') === true);
+assert('isMsNoise demo con word boundary (Demon no)', isMsNoise('Cult of the Lamb Demo') === true && isMsNoise('Demon Slayer') === false);
+assert('isMsNoise títulos normales NO son ruido', ['Halo Infinite', 'Forza Horizon 5: Edición Estándar', 'Starfield', 'Alan Wake', 'Fallout 76 (PC)', 'The Outer Worlds: Spacer’s Choice Edition', 'Forza Horizon 5: Rally Adventure', 'DayZ Cool Edition'].every((t) => isMsNoise(t) === false));
+assert('isMsNoise null/vacío', isMsNoise(null) === false && isMsNoise('') === false);
+
+// --- parseEpicFreeElements (gratis semanales de Epic, shape REAL de la API) ---
+const freeEls = [
+  { // gratis actual con pageSlug en offerMappings (productSlug null) + Thumbnail
+    title: 'Sol Cesto', productSlug: null,
+    offerMappings: [{ pageSlug: 'sol-cesto-e9b803', pageType: 'productHome' }],
+    catalogNs: { mappings: null },
+    keyImages: [
+      { type: 'DieselGameBox', url: 'https://cdn2.unrealengine.com/sol-box-600x600.png' },
+      { type: 'Thumbnail', url: 'https://cdn2.unrealengine.com/sol-thumb-400x400.png' },
+    ],
+    price: { totalPrice: { discountPrice: 0, originalPrice: 629, currencyCode: 'USD' } },
+    promotions: { promotionalOffers: [{ promotionalOffers: [{ startDate: '2026-07-30T15:00:00.000Z', endDate: '2026-08-06T15:00:00.000Z' }] }] },
+  },
+  { // gratis actual sin productSlug → usa catalogNs.mappings; sin Thumbnail → DieselGameBox
+    title: 'OTXO', productSlug: null, offerMappings: null,
+    catalogNs: { mappings: [{ pageSlug: 'otxo-396b8b', pageType: 'productHome' }] },
+    keyImages: [{ type: 'DieselGameBox', url: 'https://cdn2.unrealengine.com/otxo-box-600x600.png' }],
+    price: { totalPrice: { discountPrice: 0, originalPrice: 669, currencyCode: 'USD' } },
+    promotions: { promotionalOffers: [{ promotionalOffers: [{ startDate: '2026-07-30T15:00:00.000Z', endDate: '2026-08-06T15:00:00.000Z' }] }] },
+  },
+  { // NO gratis (discountPrice > 0) → debe filtrarse
+    title: 'We Were Here Together', productSlug: 'we-were-here-together', offerMappings: null, catalogNs: { mappings: null },
+    keyImages: [{ type: 'DieselGameBox', url: 'https://cdn2.unrealengine.com/wwht-box.png' }],
+    price: { totalPrice: { discountPrice: 579, originalPrice: 579, currencyCode: 'USD' } }, promotions: null,
+  },
+  { // gratis sin promoción (sin endDate); sin tipos conocidos → cualquier imagen
+    title: 'Monument Valley', productSlug: 'monument-valley', offerMappings: null, catalogNs: { mappings: null },
+    keyImages: [{ type: 'OfferImageWide', url: 'https://cdn2.unrealengine.com/mv-wide-3840x2160.png' }],
+    price: { totalPrice: { discountPrice: 0, originalPrice: 499, currencyCode: 'USD' } }, promotions: null,
+  },
+];
+const freeParsed = parseEpicFreeElements(freeEls);
+assert('parseEpicFreeElements filtra solo gratis', freeParsed.length === 3, freeParsed.length);
+assert('parseEpicFreeElements usa offerMappings.pageSlug', freeParsed[0].url === 'https://store.epicgames.com/p/sol-cesto-e9b803', freeParsed[0] && freeParsed[0].url);
+assert('parseEpicFreeElements usa catalogNs.mappings como fallback', freeParsed[1].url === 'https://store.epicgames.com/p/otxo-396b8b', freeParsed[1] && freeParsed[1].url);
+assert('parseEpicFreeElements url directa con productSlug', freeParsed[2].url === 'https://store.epicgames.com/p/monument-valley', freeParsed[2] && freeParsed[2].url);
+assert('parseEpicFreeElements guarda endDate', freeParsed[0].endDate === '2026-08-06T15:00:00.000Z', freeParsed[0] && freeParsed[0].endDate);
+assert('parseEpicFreeElements guarda original USD', freeParsed[0].original === 629 && freeParsed[0].currency === 'USD');
+assert('parseEpicFreeElements sin promo → endDate null', freeParsed[2].endDate === null);
+assert('parseEpicFreeElements art prefiere Thumbnail', freeParsed[0].art === 'https://cdn2.unrealengine.com/sol-thumb-400x400.png', freeParsed[0] && freeParsed[0].art);
+assert('parseEpicFreeElements art fallback DieselGameBox', freeParsed[1].art === 'https://cdn2.unrealengine.com/otxo-box-600x600.png', freeParsed[1] && freeParsed[1].art);
+assert('parseEpicFreeElements art último recurso cualquier imagen', freeParsed[2].art === 'https://cdn2.unrealengine.com/mv-wide-3840x2160.png', freeParsed[2] && freeParsed[2].art);
+assert('parseEpicFreeElements sin keyImages → art null', parseEpicFreeElements([{ title: 'Sin arte', productSlug: 'x', price: { totalPrice: { discountPrice: 0, originalPrice: 1, currencyCode: 'USD' } } }])[0].art === null);
+assert('parseEpicFreeElements con array vacío → []', parseEpicFreeElements([]).length === 0);
+assert('parseEpicFreeElements con null → []', parseEpicFreeElements(null).length === 0);
+assert('parseEpicFreeElements ignora elementos sin price', parseEpicFreeElements([{ title: 'X', productSlug: 'x' }]).length === 0);
+
+// --- gratis semanales de Epic: detección de cambios (alarma diaria) ---
+const fgNow = Date.parse('2026-08-01T12:00:00Z');
+const fgList = [
+  { title: 'Sol Cesto', startDate: '2026-07-30T15:00:00.000Z', endDate: '2026-08-06T15:00:00.000Z' },
+  { title: 'OTXO', startDate: '2026-07-30T15:00:00.000Z', endDate: '2026-08-06T15:00:00.000Z' },
+  { title: 'Vencido', startDate: '2026-07-20T15:00:00.000Z', endDate: '2026-07-26T15:00:00.000Z' }, // vencido → fuera
+  { title: 'Permanente', startDate: null, endDate: null },                                        // freebie sin fin → fuera
+];
+const fgActive = epicFreeActive(fgList, fgNow);
+assert('epicFreeActive filtra vencidos y permanentes', fgActive.length === 2 && fgActive[0].title === 'Sol Cesto' && fgActive[1].title === 'OTXO', fgActive.map(g => g.title).join(','));
+assert('epicFreeActive con lista vacía → []', epicFreeActive([], fgNow).length === 0);
+assert('epicFreeActive con null → []', epicFreeActive(null, fgNow).length === 0);
+assert('epicFreeActive con lista vencida → []', epicFreeActive([{ title: 'X', endDate: '2020-01-01T00:00:00Z' }], fgNow).length === 0);
+assert('epicFreeWeekKey = fecha de rotación (min startDate)', epicFreeWeekKey(fgActive) === '2026-07-30', epicFreeWeekKey(fgActive));
+assert('epicFreeWeekKey sin startDate → null', epicFreeWeekKey([{ title: 'X', endDate: '2026-08-06T15:00:00Z' }]) === null);
+assert('epicFreeWeekKey con lista vacía → null', epicFreeWeekKey([]) === null);
+assert('epicFreeNewTitles detecta agregados', epicFreeNewTitles(['Sol Cesto'], ['Sol Cesto', 'OTXO']).join(',') === 'OTXO');
+assert('epicFreeNewTitles sin cambios → []', epicFreeNewTitles(['A', 'B'], ['A', 'B']).length === 0);
+assert('epicFreeNewTitles con null previo', epicFreeNewTitles(null, ['A', 'B']).join(',') === 'A,B');
+assert('epicFreeNewTitles con null actual → []', epicFreeNewTitles(['A'], null).length === 0);
+assert('epicFreeNewTitles ignora duplicados', epicFreeNewTitles(['A'], ['A', 'A']).length === 0);
+
+// --- epicFreeCatalogMap (inyección del gratis semanal en cards del catálogo) ---
+const mapGames = [
+  { steamId: 1001, name: 'Sol Cesto' },
+  { steamId: 1002, name: 'Ghostrunner' },
+  { steamId: 1003, name: 'Ghostrunner 2' },
+  { steamId: 1004, name: 'Monument Valley' },
+];
+const mapFree = [
+  { title: 'Sol Cesto', endDate: '2026-08-06T15:00:00.000Z', url: 'https://store.epicgames.com/p/sol-cesto-e9b803', original: 629 },
+  { title: 'GHOSTRUNNER 2', endDate: '2026-08-06T15:00:00.000Z', url: 'https://store.epicgames.com/p/ghostrunner-2', original: 1000 },
+  { title: 'Monument Valley', endDate: '2026-07-26T15:00:00.000Z', url: 'https://store.epicgames.com/p/monument-valley', original: 499 }, // vencido → fuera
+];
+const cmap = epicFreeCatalogMap(mapGames, mapFree, fgNow);
+assert('epicFreeCatalogMap matchea gratis activo exacto', cmap[1001] && cmap[1001].url === 'https://store.epicgames.com/p/sol-cesto-e9b803', cmap[1001] && cmap[1001].url);
+assert('epicFreeCatalogMap normaliza títulos (case)', cmap[1003] && cmap[1003].title === 'GHOSTRUNNER 2');
+assert('epicFreeCatalogMap evita falso positivo por substring (Ghostrunner 2 ≠ Ghostrunner)', cmap[1002] === undefined);
+assert('epicFreeCatalogMap ignora gratis vencidos', cmap[1004] === undefined);
+assert('epicFreeCatalogMap con null → {}', Object.keys(epicFreeCatalogMap(mapGames, null, fgNow)).length === 0);
+assert('epicFreeCatalogMap con lista vacía → {}', Object.keys(epicFreeCatalogMap(mapGames, [], fgNow)).length === 0);
+assert('epicFreeCatalogMap sin coincidencias → {}', Object.keys(epicFreeCatalogMap([{ steamId: 1, name: 'X' }], mapFree, fgNow)).length === 0);
+
+
+// --- compareBySort (ordenamiento por vista) ---
+const sRow = (o) => ({
+  bug: !!o.bug, savings: o.savings ?? null, score: o.score ?? 0, bestVal: o.bestVal ?? Infinity,
+  msArs: o.msArs ?? null, ars: { steam: o.steam ?? null, epic: o.epic ?? null }, stores: o.stores || {},
+  bestStore: o.bestStore || null, hist: o.hist || [], g: { name: o.name || 'X' },
+});
+assert('sort bug primero', compareBySort(sRow({ bug: true, savings: 50 }), sRow({ bug: false }), 'bug') < 0);
+assert('sort savings mayor primero', compareBySort(sRow({ savings: 60 }), sRow({ savings: 40 }), 'savings') < 0);
+assert('sort score mayor primero', compareBySort(sRow({ score: 90 }), sRow({ score: 30 }), 'score') < 0);
+assert('sort price menor primero', compareBySort(sRow({ bestVal: 1000 }), sRow({ bestVal: 9000 }), 'price') < 0);
+assert('sort discount mayor primero', compareBySort(
+  sRow({ bestStore: 'steam', stores: { steam: { discount: 50 } } }),
+  sRow({ bestStore: 'steam', stores: { steam: { discount: 10 } } }), 'discount') < 0);
+assert('sort recent más nuevo primero', compareBySort(
+  sRow({ hist: [{ ts: 100 }] }), sRow({ hist: [{ ts: 300 }] }), 'recent') > 0);
+assert('sort name A-Z', compareBySort(sRow({ name: 'Alan' }), sRow({ name: 'Zoe' }), 'name') < 0);
+assert('sort steamPrice menor primero', compareBySort(sRow({ steam: 5000 }), sRow({ steam: 9000 }), 'steamPrice') < 0);
+assert('sort epicPrice menor primero', compareBySort(sRow({ epic: 5000 }), sRow({ epic: 9000 }), 'epicPrice') < 0);
+assert('sort msPrice menor primero', compareBySort(sRow({ msArs: 5000 }), sRow({ msArs: 9000 }), 'msPrice') < 0);
+assert('sort key desconocida → 0', compareBySort(sRow({}), sRow({}), 'xyz') === 0);
+
+// --- compareBySortDir (encabezados clicables con ▲/▼) ---
+assert('sortDir savings asc → menor primero', compareBySortDir(sRow({ savings: 40 }), sRow({ savings: 60 }), 'savings', 'asc') < 0);
+assert('sortDir savings desc → mayor primero', compareBySortDir(sRow({ savings: 60 }), sRow({ savings: 40 }), 'savings', 'desc') < 0);
+assert('sortDir steamPrice asc → menor primero', compareBySortDir(sRow({ steam: 5000 }), sRow({ steam: 9000 }), 'steamPrice', 'asc') < 0);
+assert('sortDir steamPrice desc → mayor primero', compareBySortDir(sRow({ steam: 9000 }), sRow({ steam: 5000 }), 'steamPrice', 'desc') < 0);
+assert('sortDir msPrice asc → menor primero', compareBySortDir(sRow({ msArs: 5000 }), sRow({ msArs: 9000 }), 'msPrice', 'asc') < 0);
+assert('sortDir price desc → mayor bestVal primero', compareBySortDir(sRow({ bestVal: 9000 }), sRow({ bestVal: 1000 }), 'price', 'desc') < 0);
+assert('sortDir score asc → menor primero', compareBySortDir(sRow({ score: 30 }), sRow({ score: 90 }), 'score', 'asc') < 0);
+assert('sortDir igual a natural = compareBySort', compareBySortDir(sRow({ savings: 60 }), sRow({ savings: 40 }), 'savings', 'desc') === compareBySort(sRow({ savings: 60 }), sRow({ savings: 40 }), 'savings'));
+assert('NATURAL_DIR cubre todos los criterios', Object.keys(NATURAL_DIR).length >= 10);
+
+// --- disponibilidad / calidad de datos (Game Pass vs Gratis vs pago) ---
+assert('storeOfferKind pago real', storeOfferKind({ price: 100, currency: 'ARS' }) === 'purchase');
+assert('storeOfferKind gratis real', storeOfferKind({ price: 0, free: true }) === 'free');
+assert('storeOfferKind gamepass-only', storeOfferKind({ price: 0, gamePass: true }) === 'gamepass');
+assert('storeOfferKind gamepass con precio → purchase', storeOfferKind({ price: 100, gamePass: true }) === 'purchase');
+assert('storeOfferKind null → none', storeOfferKind(null) === 'none');
+assert('storeOfferKind precio 0 sin flags → none (no asumir gratis)', storeOfferKind({ price: 0 }) === 'none');
+assert('availableStoreCount 2 tiendas con precio', availableStoreCount({ steam: { price: 100 }, epic: null, ms: { price: 5000 } }) === 2);
+assert('availableStoreCount gamepass no cuenta', availableStoreCount({ steam: { price: 100 }, ms: { price: 0, gamePass: true } }) === 1);
+assert('availableStoreCount gratis real cuenta', availableStoreCount({ steam: { price: 100 }, ms: { price: 0, free: true } }) === 2);
+assert('availableStoreCount 1 sola tienda', availableStoreCount({ steam: { price: 100 }, epic: null, ms: null }) === 1);
+assert('availableStoreCount 0 tiendas', availableStoreCount({}) === 0);
+
+// --- anyFreeStore (filtro "🎁 Gratis") ---
+assert('anyFreeStore: gratis real MS cuenta', anyFreeStore({ ms: { price: 0, free: true } }) === true);
+assert('anyFreeStore: gratis semanal Epic inyectado cuenta', anyFreeStore({ epic: { price: 0, free: true, weekly: true } }) === true);
+assert('anyFreeStore: gratis Steam cuenta', anyFreeStore({ steam: { price: 0, free: true }, ms: null }) === true);
+assert('anyFreeStore: Game Pass-only NO cuenta', anyFreeStore({ ms: { price: 0, gamePass: true } }) === false);
+assert('anyFreeStore: solo precios de pago → false', anyFreeStore({ steam: { price: 100 }, epic: { price: 200 }, ms: { price: 5000 } }) === false);
+assert('anyFreeStore: sin tiendas → false', anyFreeStore({}) === false);
+assert('anyFreeStore: null → false', anyFreeStore(null) === false);
+assert('anyFreeStore: null en una tienda no rompe', anyFreeStore({ steam: null, epic: { price: 0, free: true }, ms: null }) === true);
+
+// --- DB (capa de datos) ---
+assert('DB.toggleWish agrega', await (async () => {
+  await DB.toggleWish(12345);
+  return (await DB.getWishlist()).includes(12345);
+})());
+assert('DB.storeFresh sin caché → false', await (async () => !(await DB.storeFresh('ms')))());
+assert('DB.setStoreCache + storeFresh → true', await (async () => {
+  await DB.setStoreCache('ms', { fake: true });
+  return await DB.storeFresh('ms');
+})());
+assert('DB.getStoreTtl default ms 30 min', (await DB.getStoreTtl('ms')) === 30 * 60 * 1000);
+
+// --- DB: invalidación de caché vieja (fix Game Pass-only) ---
+// Una caché guardada con el formato viejo (sin v, clasificación free:true vieja)
+// debe descartarse: storeFresh → false aunque el TTL no haya vencido.
+assert('DB.storeFresh rechaza caché sin versión', await (async () => {
+  const key = regionKey('ofertasStoreCache');
+  const all = (await Store.get(key)) || {};
+  all.ms = { ts: Date.now(), data: { fake: true } }; // formato viejo (pre-fix)
+  await Store.set(key, all);
+  return !(await DB.storeFresh('ms'));
+})());
+assert('DB.setStoreCache escribe versión nueva', await (async () => {
+  await DB.setStoreCache('ms', { fake: true });
+  return (await DB.getStoreCache('ms')).v === STORE_CACHE_VERSION;
+})());
+assert('DB.storeFresh con caché versionada → true', await (async () => {
+  await DB.setStoreCache('ms', { fake: true });
+  return await DB.storeFresh('ms');
+})());
+
+// content.js cargó sin errores de sintaxis (smoke test)
+assert('content.js carga sin errores', window.__OFERTAS_INJECTED__ === true);
+
+// --- bugRowsOver (umbral de notificación) ---
+const fakeRows = [
+  { bug: true, savings: 70 },
+  { bug: true, savings: 45 },
+  { bug: false, savings: 90 },
+  { bug: true, savings: null },
+  null,
+];
+const over60 = bugRowsOver(fakeRows, 60);
+assert('bugRowsOver filtra >= umbral', over60.length === 1 && over60[0].savings === 70, over60.length);
+assert('bugRowsOver ignora no-bug y null', bugRowsOver(fakeRows, 40).length === 2);
+assert('bugRowsOver con lista vacía', bugRowsOver([], 60).length === 0);
+
+// --- topBugs (TOP Price Bugs del Día) ---
+const tbRows = [
+  { name: 'A', type: 'bug', savings: 70, msArs: 3000 },
+  { name: 'B', type: 'regional', savings: 90, msArs: 1000 },
+  { name: 'C', type: 'bug', savings: 50, msArs: 5000 },
+  { name: 'D', type: 'none', savings: 80, msArs: 2000 },   // sin anomalía → excluido
+  { name: 'E', type: 'bug', savings: 60, msArs: 0 },       // gratis/GP-only → excluido
+  { name: 'F', type: 'bug', savings: null, msArs: 4000 },  // sin ahorro → excluido
+  { name: 'G', type: 'bug', savings: 80, msArs: 2000 },
+];
+const top = topBugs(tbRows, 3);
+assert('topBugs ordena por ahorro desc y limita', top.length === 3 && top[0].name === 'B' && top[1].name === 'G' && top[2].name === 'A', top.map(t => t.name).join(','));
+assert('topBugs excluye type none', !top.some(t => t.type === 'none'));
+assert('topBugs excluye msArs <= 0 (Game Pass/gratis)', !top.some(t => t.msArs <= 0));
+assert('topBugs excluye savings null', !top.some(t => t.savings == null));
+assert('topBugs respeta límite N', topBugs(tbRows, 2).length === 2);
+assert('topBugs default N=5 con 4 válidos', topBugs(tbRows).length === 4);
+assert('topBugs con lista vacía', topBugs([], 5).length === 0);
+assert('topBugs con null', topBugs(null, 5).length === 0);
+assert('topBugs sin oportunidad (todo excluido)', topBugs([{ name: 'X', type: 'none', savings: 50, msArs: 100 }]).length === 0);
+
+// --- opportunityGone ("se acabó la oportunidad") ---
+const ogHist = [
+  { ts: tNow - 90 * 86400e3, msArs: 12000, bestUsdArs: 20000, savings: 40 },
+  { ts: tNow - 30 * 86400e3, msArs: 5000, bestUsdArs: 20000, savings: 75 }, // bug fuerte
+  { ts: tNow - 10 * 86400e3, msArs: 5000, bestUsdArs: 20000, savings: 75 }, // sigue bugueado
+];
+// corregido: subió de 5000 a 7000 (40%) y ya no es anomalía
+const og1 = opportunityGone(ogHist, { msArs: 7000, type: 'none' }, { bugThreshold: 40, risePct: 20 });
+assert('opportunityGone corregido (subió 40%)', og1 && og1.prevMsArs === 5000 && og1.newMsArs === 7000 && og1.risePct === 40, JSON.stringify(og1));
+assert('opportunityGone sigue siendo bug → null', opportunityGone(ogHist, { msArs: 7000, type: 'bug' }) === null);
+assert('opportunityGone sin historial → null', opportunityGone([], { msArs: 7000, type: 'none' }) === null);
+assert('opportunityGone sin bug previo → null', opportunityGone([{ ts: tNow, msArs: 6000, bestUsdArs: 20000, savings: 10 }], { msArs: 7000, type: 'none' }) === null);
+assert('opportunityGone sin subida → null', opportunityGone(ogHist, { msArs: 5000, type: 'none' }) === null);
+assert('opportunityGone subida menor al risePct → null', opportunityGone(ogHist, { msArs: 5200, type: 'none' }, { risePct: 20 }) === null);
+assert('opportunityGone msArs null → null', opportunityGone(ogHist, { msArs: null, type: 'none' }) === null);
+assert('opportunityGone msArs 0 → null', opportunityGone(ogHist, { msArs: 0, type: 'none' }) === null);
+assert('opportunityGone usa el último bug como referencia', (() => {
+  const r = opportunityGone(ogHist, { msArs: 6500, type: 'none' }, { risePct: 25 });
+  return r && r.prevMsArs === 5000 && r.risePct === 30; // 6500/5000 = +30%
+})());
+assert('opportunityGone con umbral alto (80) sin bugs previos → null', opportunityGone(ogHist, { msArs: 8000, type: 'none' }, { bugThreshold: 80, risePct: 20 }) === null);
+
+// --- gratis falso: GTA V (delisted a $0) y regla cross-store ---
+// Reproducción con data real de la API: buscar "Grand Theft Auto V" devuelve
+// "Grand Theft Auto V Enhanced" ($29.99 real, productSlug null) y las variantes
+// retiradas "GTA III / Vice City – Definitive Edition" a $0. Antes, el slug null
+// descartaba el único candidato real y pickBest elegía la variante delisted a $0
+// como "Gratis" (el bug que vio el usuario). Ahora: slug null NO descarta, y un
+// (0,0) que no es F2P nunca es gratis.
+assert('isEpicF2P: Fall Guys es F2P', isEpicF2P('Fall Guys'));
+assert('isEpicF2P: GTA III Definitive NO es F2P', !isEpicF2P('Grand Theft Auto III – The Definitive Edition'));
+assert('epicFreeAt: (0,0) no-F2P no es gratis (delisted)', !epicFreeAt(0, 0, 'Grand Theft Auto: Vice City – The Definitive Edition'));
+assert('epicFreeAt: (0,0) F2P es gratis', epicFreeAt(0, 0, 'Fall Guys'));
+assert('epicFreeAt: 100% off con precio original real es gratis', epicFreeAt(0, 2999, 'Grand Theft Auto V Enhanced'));
+assert('epicFreeAt: precio normal no es gratis', !epicFreeAt(2999, 2999, 'Grand Theft Auto V Enhanced'));
+// pickBest con la data real de Epic: el candidato real (sin slug) gana; el delisted no-free queda afuera
+const gtaEpicCands = [
+  { title: 'Grand Theft Auto V Enhanced', price: 2999, original: 2999, free: false, url: 'browse' },
+  { title: 'Grand Theft Auto: Vice City – The Definitive Edition', price: 0, original: 0, free: false, url: 'vice' },
+  { title: 'Grand Theft Auto III – The Definitive Edition', price: 0, original: 0, free: false, url: 'iii' },
+];
+const gtaBest = pickBest('Grand Theft Auto V', gtaEpicCands);
+assert('GTA V: gana el juego real (Enhanced), no el delisted a $0', gtaBest && gtaBest.title === 'Grand Theft Auto V Enhanced', gtaBest && gtaBest.title);
+assert('GTA V: el match no es gratis', gtaBest && gtaBest.free === false);
+// un (0,0) no-F2P que gane por score tampoco debe renderizar como gratis
+assert('storeOfferKind: (0,0) no-free/gamePass = none (no disponible)', storeOfferKind({ price: 0, free: false, gamePass: false }) === 'none');
+
+// --- reclass cross-store: MS "Gratis" que en realidad es Xbox Game Pass ---
+// MS dice "Gratis" (price 0, free) pero Steam/Epic tienen precio real de compra →
+// es Game Pass (los F2P reales son gratis en TODAS las tiendas). Nunca "Gratis".
+const msDiablo = { title: 'Diablo® IV PC', price: 0, free: true, gamePass: false, url: 'ms' };
+const re1 = reclassifySuspiciousFree({ ms: msDiablo, steam: { price: 100 }, epic: null }, { ms: 0, steam: 38000, epic: null });
+assert('reclass: MS gratis + Steam con precio → Game Pass', re1.stores.ms && re1.stores.ms.gamePass === true && re1.stores.ms.free === false, JSON.stringify(re1.stores.ms));
+assert('reclass: msArs pasa a null (Game Pass no es precio)', re1.ars.ms === null);
+assert('reclass: passName por defecto Xbox Game Pass', re1.stores.ms.passName === 'Xbox Game Pass');
+assert('reclass: kind resultante es gamepass', storeOfferKind(re1.stores.ms) === 'gamepass');
+const re2 = reclassifySuspiciousFree({ ms: msDiablo, steam: null, epic: { price: 100 } }, { ms: 0, steam: null, epic: 42000 });
+assert('reclass: MS gratis + Epic con precio → Game Pass', re2.stores.ms && re2.stores.ms.gamePass === true);
+const re3 = reclassifySuspiciousFree({ ms: msDiablo, steam: { price: 0, free: true }, epic: { price: 0, free: true } }, { ms: 0, steam: 0, epic: 0 });
+assert('reclass: MS gratis + Steam gratis (F2P real) → sigue gratis', re3.stores.ms && re3.stores.ms.free === true && re3.stores.ms.gamePass === false);
+const re4 = reclassifySuspiciousFree({ ms: msDiablo, steam: null, epic: null }, { ms: 0, steam: null, epic: null });
+assert('reclass: MS gratis sin datos de Steam/Epic → se conserva', re4.stores.ms && re4.stores.ms.free === true);
+const msPaid = { title: 'GTA V Enhanced', price: 26999, free: false, gamePass: true, passName: 'Xbox Game Pass' };
+const re5 = reclassifySuspiciousFree({ ms: msPaid, steam: null, epic: null }, { ms: 26999, steam: null, epic: null });
+assert('reclass: MS con precio real no se toca', re5.stores.ms === msPaid && re5.ars.ms === 26999);
+assert('reclass: no muta el input', msDiablo.free === true && msDiablo.gamePass === false);
+// Epic "Gratis" falso (delisted, no weekly) con Steam con precio → se descarta
+const epicFake = { title: 'Vice City DE', price: 0, free: true, weekly: false, url: 'epic' };
+const re6 = reclassifySuspiciousFree({ steam: { price: 100 }, epic: epicFake, ms: null }, { steam: 38000, epic: 0, ms: null });
+assert('reclass: Epic gratis falso (delisted) con Steam precio → sin datos', re6.stores.epic === null && re6.ars.epic === null);
+// gratis semanal de Epic (weekly) → exento, es dato autoritativo
+const epicWeekly = { title: 'Ghostrunner 2', price: 0, free: true, weekly: true, url: 'epic' };
+const re7 = reclassifySuspiciousFree({ steam: { price: 100 }, epic: epicWeekly, ms: null }, { steam: 24000, epic: 0, ms: null });
+assert('reclass: gratis semanal de Epic exento (dato autoritativo)', re7.stores.epic === epicWeekly);
+
+// --- buildRow: el patrón ({ stores, ars } = reclassifySuspiciousFree(...)) requiere
+// que ars sea `let`, no `const` (TypeError: Assignment to constant variable si no).
+// Smoke del patrón exacto que usa offers.js.buildRow para evitar la regresión.
+let bStores = { ms: { price: 0, free: true, gamePass: false, url: 'ms' }, steam: { price: 100 }, epic: null };
+let bArs = { ms: 0, steam: 38000, epic: null };
+({ stores: bStores, ars: bArs } = reclassifySuspiciousFree(bStores, bArs));
+assert('buildRow: destructuring sobre let no lanza TypeError', bStores.ms && bStores.ms.gamePass === true && bArs.ms === null, JSON.stringify(bStores.ms));
+
+// --- caché con versión vieja se descarta (los datos viejos con free:true no sobreviven) ---
+await Store.set(regionKey('ofertasStoreCache'), { ms: { ts: Date.now(), v: 2, data: {} } });
+assert('storeFresh rechaza caché sin la versión actual (v2)', !(await DB.storeFresh('ms')));
+assert('STORE_CACHE_VERSION = 7 (v7 blanqueo post-auditoría)', STORE_CACHE_VERSION === 7, STORE_CACHE_VERSION);
+await Store.set(regionKey('ofertasStoreCache'), {});
+
+// --- catálogo ---
+const allSteamIds = GAMES.map(g => g.steamId);
+assert('catálogo sin duplicados de steamId', new Set(allSteamIds).size === allSteamIds.length);
+assert('catálogo ampliado >= 520 juegos (era 200, luego 480)', GAMES.length >= 520, GAMES.length);
+assert('catálogo incluye juegos nuevos verificados en MS Store AR', ['RoboCop: Rogue City', 'Dead Island 2', 'Gotham Knights', 'Star Wars Outlaws', 'Avowed', 'Dead by Daylight', 'Clair Obscur: Expedition 33', 'SIGNALIS', 'Metaphor: ReFantazio'].every(n => GAMES.some(g => g.name === n)));
+assert('appid RoboCop: Rogue City correcto (verificado storesearch)', GAMES.some(g => g.name === 'RoboCop: Rogue City' && g.steamId === 1681430));
+assert('appid Dead Island 2 correcto (verificado storesearch)', GAMES.some(g => g.name === 'Dead Island 2' && g.steamId === 934700));
+assert('appid Metaphor: ReFantazio correcto (verificado storesearch)', GAMES.some(g => g.name === 'Metaphor: ReFantazio' && g.steamId === 2679460));
+assert('appid Avowed correcto (verificado storesearch)', GAMES.some(g => g.name === 'Avowed' && g.steamId === 2457220));
+assert('Baldur\'s Gate 3 sin duplicados en el catálogo', GAMES.filter(g => g.name === "Baldur's Gate 3").length === 1);
+assert('todos los juegos tienen name, steamId numérico y genre', GAMES.every(g => typeof g.name === 'string' && g.name.length > 0 && typeof g.steamId === 'number' && g.steamId > 0 && typeof g.genre === 'string' && g.genre.length > 0));
+const GENRES = [...new Set(GAMES.map(g => g.genre))];
+assert('géneros válidos (lista conocida)', GENRES.every(gen => ['Acción','Aventura','RPG','JRPG','Shooter','Estrategia','Simulación','Carreras','Lucha','Plataformas','Supervivencia','Terror','Roguelike','Puzzle','Deportes'].includes(gen)), GENRES.join(','));
+assert('todos los géneros están en el filtro', GENRES.length >= 10, GENRES.length);
+assert('catálogo incluye Cyberpunk 2077', GAMES.some(g => g.name === 'Cyberpunk 2077'));
+assert('catálogo incluye Persona 4 Golden con appid correcto', GAMES.some(g => g.name === 'Persona 4 Golden' && g.steamId === 1113000));
+assert('appid nuevo God of War (verificado API)', GAMES.some(g => g.name === 'God of War' && g.steamId === 1593500));
+assert('appid nuevo Elden Ring duplicado no aparece dos veces', GAMES.filter(g => g.steamId === 1245620).length === 1);
+assert('appid nuevo Final Fantasy XVI (verificado API)', GAMES.some(g => g.name === 'FINAL FANTASY XVI' && g.steamId === 2515020));
+assert('appid nuevo Dying Light (verificado API)', GAMES.some(g => g.name === 'Dying Light' && g.steamId === 239140));
+assert('appid nuevo Black Myth: Wukong (verificado API)', GAMES.some(g => g.name === 'Black Myth: Wukong' && g.steamId === 2358720));
+assert('appid corregido Quake = 2310', GAMES.some(g => g.name === 'Quake' && g.steamId === 2310));
+assert('appid corregido Age of Empires DE = 1017900', GAMES.some(g => g.name === 'Age of Empires: Definitive Edition' && g.steamId === 1017900));
+assert('appids descartados no están (Anthem, Stellar Blade, Splitgate)', !GAMES.some(g => [1235440, 2948630, 677920].includes(g.steamId)));
+assert('catálogo sin nombres duplicados (normalizados)', new Set(GAMES.map((g) => normStr(g.name))).size === GAMES.length);
+
+// --- chunkIds (batch de Steam en lotes de ~120) ---
+assert('chunkIds parte 250 en 3 chunks', chunkIds(Array.from({ length: 250 }, (_, i) => i), 120).length === 3);
+assert('chunkIds respeta el tamaño', chunkIds([1, 2, 3], 2).every((c) => c.length <= 2));
+assert('chunkIds conserva el orden total', chunkIds([1, 2, 3, 4], 2).flat().join() === '1,2,3,4');
+assert('chunkIds con lista vacía', chunkIds([], 10).length === 0);
+
+// --- mergeCatalog (catálogo + juegos agregados por el usuario) ---
+const baseCat = [{ steamId: 1, name: 'Cyberpunk 2077' }, { steamId: 2, name: 'Halo Infinite' }];
+const userCat = [{ steamId: 3, name: 'Ninja Gaiden 2 Black' }, { steamId: 1, name: 'Cyberpunk 2077' }];
+const merged = mergeCatalog(baseCat, userCat);
+assert('mergeCatalog agrega juegos nuevos', merged.length === 3, merged.length);
+assert('mergeCatalog no duplica por steamId', merged.filter((g) => g.steamId === 1).length === 1);
+assert('mergeCatalog no duplica por nombre normalizado', mergeCatalog(baseCat, [{ name: 'Cyberpunk 2077', steamId: 999 }]).length === 2);
+assert('mergeCatalog con base null', mergeCatalog(null, [{ steamId: 5, name: 'X' }]).length === 1);
+assert('mergeCatalog ignora entradas sin nombre', mergeCatalog([{ steamId: 1, name: 'A' }], [{ steamId: 2 }]).length === 1);
+
+// ---------- multipaís: regiones, moneda y conversión ----------
+assert('REGIONS incluye 16 países', Object.keys(REGIONS).length === 16, Object.keys(REGIONS).length);
+assert('Argentina es el default', activeRegion().code === 'AR');
+assert('setActiveRegion cambia a México', (setActiveRegion('MX'), activeRegion().code === 'MX' && activeRegion().currency === 'MXN'));
+assert('setActiveRegion ignora códigos inválidos', (setActiveRegion('ZZ'), activeRegion().code === 'AR'));
+setActiveRegion('MX');
+assert('storeToLocal con moneda local devuelve directo', storeToLocal({ price: 979, currency: 'MXN' }, activeRegion(), 17.15) === 979);
+assert('storeToLocal con USD convierte con la tasa', Math.round(storeToLocal({ price: 59.99, currency: 'USD' }, activeRegion(), 17.15)) === 1029, Math.round(storeToLocal({ price: 59.99, currency: 'USD' }, activeRegion(), 17.15)));
+assert('storeToLocal sin moneda usa la de la región (MX → directo)', storeToLocal({ price: 10, currency: null }, activeRegion(), 17.15) === 10);
+// AR: Steam devuelve USD (47.99) → blue 1560
+setActiveRegion('AR');
+assert('AR: Steam USD 47.99 * 1560', Math.round(storeToLocal({ price: 47.99, currency: 'USD' }, activeRegion(), 1560)) === 74864);
+// CLP y COP no tienen decimales: priceToUnits devuelve directo
+assert('CLP sin decimales (45499 directo)', priceToUnits(45499, 'CLP') === 45499);
+assert('USD con decimales (5999 → 59.99)', priceToUnits(5999, 'USD') === 59.99);
+assert('MXN con decimales (97900 → 979)', priceToUnits(97900, 'MXN') === 979);
+assert('fmtMoney en AR formatea ARS', (setActiveRegion('AR'), fmtMoney(74864).includes('74.864')));
+assert('fmtMoney en MX formatea MXN', (setActiveRegion('MX'), fmtMoney(979).includes('979')));
+// caso real EEUU: Steam USD 59.99 (cents 5999) vs MS USD 19.99 directo → ahorro 67% = regional
+setActiveRegion('US');
+assert('US: Steam cents 5999 → 59.99', priceToUnits(5999, 'USD') === 59.99);
+assert('US: MS 19.99 vs Steam 59.99 → regional 67%', detectType({ msArs: 19.99, bestUsdArs: 59.99 }).type === 'regional');
+setActiveRegion('AR');
+
+out.textContent = results.join('\n');
+document.title = results.some(r => r.startsWith('FAIL')) ? 'FAIL' : 'ALL PASS';
+})();
+</script>
+</body>
+</html>

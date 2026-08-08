@@ -1,0 +1,10 @@
+# Archivos temporales / de debug
+_*.html
+_*.ps1
+_*.pl
+debug-*.html
+*.tmp
+
+# Sistema
+Thumbs.db
+.DS_Store

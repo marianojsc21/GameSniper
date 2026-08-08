@@ -1,0 +1,174 @@
+/* popup.css — estilo del popup de la extensión */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0b0e17;
+  --panel: #131a2b;
+  --line: #25304d;
+  --text: #e8ecf6;
+  --muted: #8b96b5;
+  --ok: #38e08b;
+  --hot: #ff5d73;
+  --ms: #00c6ff;
+  --gold: #ffc857;
+  --orange: #ff9a3c;
+  --glow-a: #16223f;
+  --chip-bg: rgba(255,255,255,.04);
+  --brand-a: #fff;
+  --brand-b: #9fe8c8;
+  --brand-cyan: #2ecbff;  /* "Sniper" del logo */
+}
+
+/* Tema claro premium (por defecto es el oscuro de arriba) */
+[data-theme="light"] {
+  --bg: #f2f5fb;
+  --panel: #ffffff;
+  --line: #d9e1f0;
+  --text: #1b2440;
+  --muted: #5c6a8c;
+  --ok: #0f9d5a;
+  --hot: #e0435c;
+  --ms: #0091c9;
+  --gold: #c98a1b;
+  --orange: #e0792b;
+  --glow-a: #dce6f8;
+  --chip-bg: rgba(20, 30, 70, 0.05);
+  --brand-a: #131d3a;
+  --brand-b: #0e7d63;
+  --brand-cyan: #0078d4;  /* "Sniper" del logo */
+}
+
+body {
+  width: 320px;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  /* separado en background-color (animable en el cambio de tema) + background-image
+     (el radial-gradient con var no es transicionable; el color base sí hace fade) */
+  background-color: var(--bg);
+  background-image: radial-gradient(240px 180px at 20% -10%, var(--glow-a) 0%, transparent 60%);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* Transición suave al cambiar de tema: la clase se agrega SOLO cuando el usuario
+   togglea el tema (nunca en el primer paint) y se remueve al terminar. Igual que
+   offers.css para un crossfade consistente. */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease,
+              box-shadow 0.35s ease, fill 0.35s ease, stroke 0.35s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: none !important;
+  }
+}
+
+.wrap { padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 14px; }
+
+/* header */
+.head { display: flex; align-items: center; gap: 11px; }
+.head-text { flex: 1; min-width: 0; }
+.logo {
+  width: 42px; height: 42px;
+  object-fit: contain; flex-shrink: 0;
+}
+/* el nombre es la imagen pixelada del logo (fondo transparente) */
+.head .gs-name {
+  height: 24px; width: auto; display: block;
+  object-fit: contain; image-rendering: pixelated;
+}
+
+/* toggle de tema claro/oscuro */
+.btn-theme {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 16px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.btn-theme:hover {
+  transform: translateY(-1px); border-color: var(--gold);
+  box-shadow: 0 4px 12px rgba(255, 200, 87, 0.25);
+}
+.btn-theme:active { transform: scale(0.95); }
+.head p { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+/* botón principal */
+.open-btn {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  background: linear-gradient(135deg, #38e08b, #14b8a6);
+  border: none; border-radius: 14px; color: #06281a;
+  padding: 14px 16px; cursor: pointer;
+  box-shadow: 0 8px 22px rgba(56, 224, 139, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  position: relative; overflow: hidden;
+}
+.open-btn::after {
+  content: ""; position: absolute; top: 0; left: -80%; width: 50%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: skewX(-20deg);
+  animation: shine 2.8s infinite;
+}
+@keyframes shine { 0%, 60% { left: -80%; } 100% { left: 140%; } }
+.open-btn:hover { transform: translateY(-1px); filter: brightness(1.07); }
+.open-btn:active { transform: translateY(1px) scale(0.98); }
+.btn-icon { font-size: 22px; }
+.btn-text { flex: 1; text-align: left; display: flex; flex-direction: column; line-height: 1.2; }
+.btn-text strong { font-size: 15px; letter-spacing: 0.5px; }
+.btn-text small { font-size: 11.5px; opacity: 0.75; font-weight: 500; }
+.btn-arrow { font-size: 20px; font-weight: 700; }
+
+/* quick stats */
+.quick {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 11px 13px; font-size: 12.5px; color: var(--muted);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.q-row { line-height: 1.45; }
+.q-row b { color: var(--hot); }
+.q-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.q-chip {
+  font-size: 11px; padding: 3px 9px; border-radius: 999px;
+  background: rgba(56,224,139,0.12); color: var(--ok); border: 1px solid rgba(56,224,139,0.3);
+}
+.q-chip.dim { background: var(--chip-bg); color: var(--muted); border-color: var(--line); }
+.q-chip.warn { background: rgba(255,154,60,0.12); color: var(--orange); border-color: rgba(255,154,60,0.35); }
+.q-chip.free { background: rgba(196,163,255,0.14); color: #a78bfa; border-color: rgba(196,163,255,0.4); }
+[data-theme="light"] .q-chip.free { color: #7c3aed; border-color: rgba(124,58,237,0.35); }
+[data-theme="light"] .q-best {
+  background: linear-gradient(135deg, rgba(224,121,43,0.12), rgba(224,67,92,0.08));
+}
+
+/* mejor oportunidad */
+.q-best {
+  background: linear-gradient(135deg, rgba(255,154,60,0.1), rgba(255,93,115,0.08));
+  border: 1px solid rgba(255,154,60,0.35);
+  border-radius: 12px; padding: 10px 13px; font-size: 12.5px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.q-best.hidden { display: none; }
+.q-best .b-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--orange); font-weight: 700; }
+.q-best .b-name { font-weight: 800; color: var(--text); font-size: 13.5px; }
+.q-best .b-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.b-score {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 800; font-size: 12px; color: #06281a;
+  background: conic-gradient(var(--orange) calc(var(--sc, 0) * 1%), rgba(255,255,255,.1) 0);
+  position: relative;
+}
+.b-score::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--panel); }
+.b-score span { position: relative; z-index: 1; }
+.b-save { font-weight: 800; color: var(--ok); }
+.b-open {
+  margin-left: auto; font-size: 11px; font-weight: 800; text-decoration: none;
+  color: var(--orange); border: 1px solid rgba(255,154,60,.4); border-radius: 8px; padding: 3px 9px;
+  transition: background .15s;
+}
+.b-open:hover { background: rgba(255,154,60,.12); }
+
+.foot { text-align: center; color: var(--muted); font-size: 11px; line-height: 1.5; }

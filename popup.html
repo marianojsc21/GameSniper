@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <title>GameSniper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <img class="logo" src="icons/gamesniper.png" alt="GameSniper" />
+      <div class="head-text">
+        <img class="gs-name" src="icons/gamesniper-name.png" alt="GameSniper" />
+        <p>Cazador de oportunidades de juegos</p>
+      </div>
+      <button id="themeToggle" class="btn-theme" title="Cambiar a tema claro">☀️</button>
+    </header>
+
+    <button id="openBtn" class="open-btn">
+      <span class="btn-icon">🛒</span>
+      <span class="btn-text">
+        <strong>VER OPORTUNIDADES</strong>
+        <small>Steam · Epic · Microsoft Store</small>
+      </span>
+      <span class="btn-arrow">→</span>
+    </button>
+
+    <div id="quickStats" class="quick">
+      <div class="q-row" id="qLast">Abrí el comparador para ver precios.</div>
+      <div class="q-chips" id="qChips"></div>
+    </div>
+    <div class="q-best hidden" id="qBest"></div>
+
+    <footer class="foot">
+      Detecta errores de precio, regionalización mal configurada y ofertas ocultas antes de que desaparezcan 🤑
+    </footer>
+  </div>
+  <script src="shared/util.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

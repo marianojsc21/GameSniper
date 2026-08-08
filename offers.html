@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GameSniper — Steam · Epic · Microsoft Store</title>
+  <link rel="stylesheet" href="offers.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo"><img src="icons/gamesniper.png" alt="GameSniper" /></div>
+      <div>
+        <img class="gs-name" src="icons/gamesniper-name.png" alt="GameSniper" />
+        <p id="brandSub">Steam · Epic · Microsoft Store — precios en <b>ARS</b></p>
+      </div>
+    </div>
+    <div class="statusbar" id="statusbar"></div>
+    <div class="topbar-actions">
+      <label class="rate-picker region-picker" title="Tu región: cambia la moneda y los precios de las 3 tiendas">
+        <span>🌎 Región:</span>
+        <select id="regionSelect">
+          <option value="AR">🇦🇷 Argentina</option>
+          <option value="US">🇺🇸 Estados Unidos</option>
+          <option value="MX">🇲🇽 México</option>
+          <option value="BR">🇧🇷 Brasil</option>
+          <option value="CL">🇨🇱 Chile</option>
+          <option value="CO">🇨🇴 Colombia</option>
+          <option value="PE">🇵🇪 Perú</option>
+          <option value="ES">🇪🇸 España</option>
+          <option value="GB">🇬🇧 Reino Unido</option>
+          <option value="DE">🇩🇪 Alemania</option>
+          <option value="FR">🇫🇷 Francia</option>
+          <option value="IT">🇮🇹 Italia</option>
+          <option value="CA">🇨🇦 Canadá</option>
+          <option value="AU">🇦🇺 Australia</option>
+          <option value="JP">🇯🇵 Japón</option>
+          <option value="KR">🇰🇷 Corea del Sur</option>
+        </select>
+      </label>
+      <label class="rate-picker" title="Tipo de cambio de tu región">
+        <span id="rateLabel">Dólar:</span>
+        <select id="rateType">
+          <option value="blue">Blue</option>
+          <option value="oficial">Oficial</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="custom">Manual</option>
+        </select>
+        <input type="number" id="customRate" step="10" min="0" placeholder="manual" title="Tipo de cambio manual" />
+      </label>
+      <button id="themeToggle" class="btn-theme" title="Cambiar a tema claro">☀️</button>
+      <button id="refreshBtn" class="btn-refresh" title="Actualizar precios">↻ Actualizar</button>
+      <span class="build-tag" id="buildTag" title="Versión de la extensión"></span>
+    </div>
+  </header>
+
+  <div class="scan-progress" id="scanProgress" hidden role="progressbar" aria-label="Buscando precios" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="scan-progress-track">
+      <div class="scan-progress-fill" id="scanProgressFill"></div>
+    </div>
+    <div class="scan-progress-meta">
+      <span>🔎 Buscando precios en Steam, Epic y Microsoft…</span>
+      <span class="scan-progress-pct" id="scanProgressPct">0%</span>
+    </div>
+  </div>
+
+  <section class="dashboard" id="dashboard">
+    <div class="dash-card hot"><div class="dash-ico">🔥</div><div><div class="d-num" id="dashBugs">–</div><div class="d-label">Posibles Price Bugs</div></div></div>
+    <div class="dash-card good"><div class="dash-ico">💚</div><div><div class="d-num" id="dashBig">–</div><div class="d-label">Grandes ofertas (score ≥ 70)</div></div></div>
+    <div class="dash-card low"><div class="dash-ico">🎮</div><div><div class="d-num" id="dashLows">–</div><div class="d-label">En mínimo histórico</div></div></div>
+    <div class="dash-card"><div class="dash-ico">🕹️</div><div><div class="d-num" id="statGames">–</div><div class="d-label">Juegos</div></div></div>
+    <div class="dash-card hot"><div class="dash-ico">🐛</div><div><div class="d-num" id="statBugs">–</div><div class="d-label">Bug en Microsoft</div></div></div>
+  </section>
+
+  <section class="top-section hidden" id="topSection">
+    <div class="top-head">
+      <h2>🔥 <span class="grad-text">TOP Price Bugs del Día</span></h2>
+      <p class="top-sub"></p>
+    </div>
+    <div class="top-list"></div>
+  </section>
+
+  <section class="epic-free-section hidden" id="epicFreeSection">
+    <div class="epic-free-head">
+      <h2>🎁 <span class="grad-text">Gratis esta semana en Epic</span></h2>
+      <p class="epic-free-sub">Juegos que Epic regala por tiempo limitado — reclamalos antes de que terminen.</p>
+    </div>
+    <div class="epic-free-list" id="epicFreeList"></div>
+  </section>
+
+  <section class="ms-search-section" id="msSearchSection">
+    <div class="ms-search-head">
+      <h2>🔎 <span class="grad-text">¿No está tu juego?</span></h2>
+      <p class="ms-search-sub">Buscá <b>cualquier</b> juego del catálogo completo de Microsoft Store y agregalo al comparador. Si tiene versión en Steam/Epic, se compara también.</p>
+    </div>
+    <div class="ms-search-bar">
+      <input type="search" id="msSearchInput" placeholder="Ej: Ninja Gaiden 2 Black, Black Myth: Wukong, PowerWash Simulator…" autocomplete="off" />
+      <button id="msSearchBtn" class="btn-refresh">🔎 Buscar en Microsoft Store</button>
+    </div>
+    <div class="ms-search-results" id="msSearchResults"></div>
+  </section>
+
+  <section class="toolbar">
+    <div class="view-toggle" id="viewToggle" title="Cambiar entre vista de cuadrícula y lista">
+      <button data-view="grid" class="active" title="Cuadrícula">🔲 Cuadrícula</button>
+      <button data-view="list" title="Lista">≣ Lista</button>
+    </div>
+    <div class="search-wrap">
+      <input type="search" id="searchInput" placeholder="Buscar juego (catálogo + Microsoft Store)…" autocomplete="off" />
+      <div class="search-live" id="searchLive" hidden></div>
+    </div>
+    <select id="genreSelect" title="Filtrar por género">
+      <option value="">Todos los géneros</option>
+    </select>
+    <select id="sortSelect">
+      <option value="bug">🔥 Oportunidad primero</option>
+      <option value="savings">Mayor ahorro</option>
+      <option value="score">Mayor score</option>
+      <option value="price">Menor precio</option>
+      <option value="discount">Descuento</option>
+      <option value="recent">Más recientes</option>
+      <option value="name">Nombre A–Z</option>
+      <option value="steamPrice">Precio Steam</option>
+      <option value="epicPrice">Precio Epic</option>
+      <option value="msPrice">Precio MS</option>
+    </select>
+    <label class="toggle" title="Umbral de ahorro para marcar un precio como bug en Microsoft">
+      <span>🚨 Bug ≥</span>
+      <select id="bugThreshold" class="threshold-num">
+        <option value="40">40%</option>
+        <option value="50">50%</option>
+        <option value="60">60%</option>
+        <option value="70">70%</option>
+      </select>
+    </label>
+    <label class="toggle">
+      <input type="checkbox" id="onlyBugToggle" />
+      <span>Solo bugs</span>
+    </label>
+    <label class="toggle">
+      <input type="checkbox" id="onlyWishToggle" />
+      <span>⭐ Deseados</span>
+    </label>
+    <label class="toggle" title="Mostrar también juegos con precio en una sola tienda (por defecto solo se comparan juegos con 2+ tiendas)">
+      <input type="checkbox" id="fExclusives" />
+      <span>👀 Mostrar exclusivos</span>
+    </label>
+    <label class="toggle" title="Notificar cuando un bug supere el % de ahorro">
+      <input type="checkbox" id="notifyToggle" checked />
+      <span>🔔 Notificar bugs ≥</span>
+      <input type="number" id="notifyThreshold" min="10" max="95" step="5" value="60" class="notify-num" title="Umbral de ahorro % para notificar" />
+      <span>%</span>
+    </label>
+  </section>
+
+  <section class="filters" id="filters">
+    <label class="toggle" title="Solo juegos gratis de verdad (sin suscripción) en cualquier tienda: Steam, Epic o Microsoft">
+      <input type="checkbox" id="fFree" /><span>🎁 Gratis</span>
+    </label>
+    <label class="toggle"><input type="checkbox" id="fAaa" /><span>AAA</span></label>
+    <label class="toggle"><input type="checkbox" id="fCoop" /><span>👥 Cooperativos</span></label>
+    <label class="toggle"><input type="checkbox" id="fTopRated" /><span>⭐ Excelente puntuación</span></label>
+    <label class="toggle"><input type="checkbox" id="fHistLow" /><span>🏆 Mínimos históricos</span></label>
+    <label class="toggle" title="Precio máximo en Microsoft Store">
+      <span>Precio MS ≤ $</span>
+      <input type="number" id="fMaxPrice" min="0" step="500" placeholder="5000" class="notify-num" />
+    </label>
+    <label class="toggle" title="Ahorro mínimo respecto del mejor precio Steam/Epic">
+      <span>Ahorro ≥</span>
+      <input type="number" id="fMinSavings" min="0" max="95" step="5" placeholder="40" class="notify-num" />
+      <span>%</span>
+    </label>
+  </section>
+
+  <main id="grid" class="grid" aria-live="polite"></main>
+  <div class="grid-count" id="gridCount"></div>
+
+  <footer class="foot">
+    Herramienta inteligente de oportunidades: compara Steam · Epic · Microsoft Store, detecta errores de precio,
+    regionalización mal configurada y ofertas ocultas antes de que desaparezcan. El "bug" se marca según el umbral
+    elegido (default <strong>≥ 40%</strong>) respecto del mejor precio Steam/Epic convertido a tu moneda local.
+  </footer>
+
+  <script src="shared/util.js"></script>
+  <script src="shared/catalog.js"></script>
+  <script src="shared/stores.js"></script>
+  <script src="shared/db.js"></script>
+  <script src="offers.js"></script>
+</body>
+</html>
