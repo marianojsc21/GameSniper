@@ -1,10 +1,22 @@
 # GameSniper — Cazador de oportunidades de juegos 🎮
 
-Extensión de Chrome (Manifest V3) que encuentra **el precio más barato de cualquier juego en segundos** comparando **Microsoft Store, Steam y Epic Games** (precios de Argentina, ARS).
+<p align="center">
+  <img src="https://img.shields.io/badge/versi%C3%B3n-v4.0-171f36?style=flat-square" alt="versión v4.0" />
+  <img src="https://img.shields.io/badge/Manifest%20V3-%E2%9C%93-3b82f6?style=flat-square" alt="Manifest V3" />
+  <img src="https://img.shields.io/badge/Chrome%20%C2%B7%20Edge%20%C2%B7%20Brave-Listo-0ea5e9?style=flat-square" alt="Navegadores" />
+  <img src="https://img.shields.io/badge/Steam%20%C2%B7%20Epic%20%C2%B7%20Microsoft%20Store-3%20tiendas-7c3aed?style=flat-square" alt="Tiendas" />
+  <img src="https://img.shields.io/badge/precios%20en-ARS%20%2B%2016%20pa%C3%ADses-16a34a?style=flat-square" alt="Regiones" />
+</p>
+
+Extensión de Chrome (Manifest V3) que encuentra **el precio más barato de cualquier juego en segundos** comparando **Microsoft Store, Steam y Epic Games** — precios en **ARS** por defecto, con **selector de región** para 16 países.
 
 > Encuentra el precio más barato de cualquier juego en segundos. Compara Steam, Epic Games y Microsoft Store, detecta precios regionales mal configurados, posibles errores de precio y ofertas ocultas antes de que desaparezcan.
 
 No es solo un comparador: es una **herramienta inteligente de oportunidades**. Detecta cuándo un juego en Steam/Epic sale "unos dólares" pero en Microsoft Store tiene un precio **bugueado / argentinizado** y sale muchísimo más barato.
+
+## 📸 Vista previa
+
+![GameSniper — página de ofertas](screenshot.png)
 
 ## Cómo funciona
 
@@ -130,13 +142,16 @@ La extensión **prefiere ocultar datos dudosos antes que mostrar información en
 
 El resto del código (página, popup, content script, notificaciones) lo consume dinámicamente sin cambios.
 
-## Instalación (modo desarrollador)
+## 📥 Instalación (modo desarrollador)
 
-1. Abrí `chrome://extensions`.
-2. Activá **Modo de desarrollador** (toggle arriba a la derecha).
-3. Clic en **Cargar descomprimida** (Load unpacked).
-4. Seleccioná la carpeta **`ofertas-extension`**.
-5. Listo: el ícono 🟢 OF aparece en la barra.
+> ⚠️ La extensión todavía no está en Chrome Web Store. Instalarla descomprimida toma un minuto:
+
+1. **Obtené el código**: cloná el repo (`git clone https://github.com/marianojsc21/GameSniper.git`) o descargalo como ZIP (botón verde *Code* → *Download ZIP*) y descomprimilo.
+2. Abrí `chrome://extensions` (en Edge: `edge://extensions`; en Brave: `brave://extensions`).
+3. Activá **Modo de desarrollador** (toggle arriba a la derecha).
+4. Clic en **Cargar descomprimida** (*Load unpacked*).
+5. Seleccioná la carpeta **`ofertas-extension`** (la que contiene `manifest.json`).
+6. Listo: el ícono de GameSniper aparece en la barra. Abrí el popup y toca **VER OPORTUNIDADES**.
 
 ## Notas
 
