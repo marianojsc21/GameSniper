@@ -146,14 +146,48 @@ El resto del código (página, popup, content script, notificaciones) lo consume
 
 ## 📥 Instalación (modo desarrollador)
 
-> ⚠️ La extensión todavía no está en Chrome Web Store. Instalarla descomprimida toma un minuto:
+> ⚠️ La extensión todavía no está en Chrome Web Store. Instalarla descomprimida toma un minuto y **no necesitás saber nada de GitHub ni de programación** para hacerlo — te guío paso a paso.
 
-1. **Obtené el código**: cloná el repo (`git clone https://github.com/marianojsc21/GameSniper.git`) o descargalo como ZIP (botón verde *Code* → *Download ZIP*) y descomprimilo.
-2. Abrí `chrome://extensions` (en Edge: `edge://extensions`; en Brave: `brave://extensions`).
-3. Activá **Modo de desarrollador** (toggle arriba a la derecha).
-4. Clic en **Cargar descomprimida** (*Load unpacked*).
-5. Seleccioná la carpeta **`ofertas-extension`** (la que contiene `manifest.json`).
-6. Listo: el ícono de GameSniper aparece en la barra. Abrí el popup y toca **VER OPORTUNIDADES**.
+### Qué es esto de GitHub (en 30 segundos)
+
+GitHub es una página donde se guarda el código de la extensión. **No tenés que crear una cuenta ni instalar ningún programa** para instalarla: solo vas a **descargar la carpeta del proyecto** y cargarla en tu navegador.
+
+### 🟢 Camino A — Sin Git, solo con el navegador (recomendado)
+
+1. **Abrí la página del proyecto**: [github.com/marianojsc21/GameSniper](https://github.com/marianojsc21/GameSniper).
+2. **Descargá el código**: tocá el botón verde **`<> Code`** (arriba a la derecha) y elegí **Download ZIP**. Se baja un archivo llamado `GameSniper-main.zip`.
+3. **Descomprimilo**: andá a tu carpeta de *Descargas*, hacé **clic derecho sobre el ZIP → Extraer todo…** → *Extraer*. Te queda una carpeta llamada `GameSniper-main`.
+4. **Dentro de esa carpeta hay otra carpeta llamada `ofertas-extension`** (es la que contiene el archivo `manifest.json`). De ahora en más vas a usar **esa**.
+5. **Abrí las extensiones de tu navegador**: escribí en la barra de direcciones `chrome://extensions` y apretá Enter (en Edge: `edge://extensions`; en Brave: `brave://extensions`).
+6. **Activá el modo de desarrollador**: tocá el interruptor **Modo de desarrollador** que está arriba a la derecha.
+7. **Cargá la extensión**: tocá el botón **Cargar descomprimida** (*Load unpacked*).
+8. **Elegí la carpeta correcta**: buscá la carpeta **`ofertas-extension`** (la del paso 4, la que está DENTRO de `GameSniper-main`) y seleccionala. ⚠️ *Este es el paso donde casi todos se equivocan: no elijas la carpeta `GameSniper-main`, sino la `ofertas-extension` que está adentro.*
+9. **Listo 🎉**: el ícono de GameSniper aparece en la barra. Tocá el ícono para abrir el popup y presioná **VER OPORTUNIDADES** para escanear precios.
+
+### 🔵 Camino B — Con Git (para los que quieren actualizaciones fáciles)
+
+Si ya usás Git (o querés aprender), además podés clonar el proyecto y actualizarlo con un solo comando cuando haya versiones nuevas:
+
+```bash
+git clone https://github.com/marianojsc21/GameSniper.git
+```
+
+Después, para actualizar a la última versión:
+
+```bash
+cd GameSniper
+git pull
+```
+
+Y recargás la extensión en `chrome://extensions` (botón ↻). Con el Camino A (ZIP) tenés que volver a descargar el ZIP en cada actualización.
+
+### 🆘 Problemas comunes
+
+- **No veo el botón "Cargar descomprimida"** → activá primero el interruptor **Modo de desarrollador** (paso 6). Sin eso, el botón no aparece.
+- **Me dice "Falta el archivo de manifiesto o no se puede leer"** → elegiste la carpeta equivocada: tenés que seleccionar la **`ofertas-extension`** (la que contiene el `manifest.json`), no la `GameSniper-main`.
+- **No veo el ícono de GameSniper en la barra** → tocá el ícono de *rompecabezas* 🧩 en la barra del navegador y fijá (pin) el de GameSniper.
+- **Cambié algo o quiero ver si hay novedades** → en `chrome://extensions`, tocá el botón **↻ Recargar** de la tarjeta de GameSniper.
+- **La extensión funciona pero no muestra precios** → revisá que tengas internet y esperá unos segundos: el escaneo de las 3 tiendas tarda unos momentos la primera vez (después usa caché de 30 min).
 
 ## Notas
 
