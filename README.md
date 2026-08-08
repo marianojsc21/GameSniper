@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/Chrome%20%C2%B7%20Edge%20%C2%B7%20Brave-Listo-0ea5e9?style=flat-square" alt="Navegadores" />
   <img src="https://img.shields.io/badge/Steam%20%C2%B7%20Epic%20%C2%B7%20Microsoft%20Store-3%20tiendas-7c3aed?style=flat-square" alt="Tiendas" />
   <img src="https://img.shields.io/badge/precios%20en-ARS%20%2B%2016%20pa%C3%ADses-16a34a?style=flat-square" alt="Regiones" />
+  <img src="https://img.shields.io/badge/licencia-MIT-yellow?style=flat-square" alt="Licencia MIT" />
 </p>
 
 Extensión de Chrome (Manifest V3) que encuentra **el precio más barato de cualquier juego en segundos** comparando **Microsoft Store, Steam y Epic Games** — precios en **ARS** por defecto, con **selector de región** para 16 países.
