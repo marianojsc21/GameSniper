@@ -1,7 +1,7 @@
 # GameSniper — Cazador de oportunidades de juegos 🎮
 
 <p align="center">
-  <img src="https://img.shields.io/badge/versi%C3%B3n-v4.0-171f36?style=flat-square" alt="versión v4.0" />
+  <img src="https://img.shields.io/badge/versi%C3%B3n-v4.1-171f36?style=flat-square" alt="versión v4.1" />
   <img src="https://img.shields.io/badge/Manifest%20V3-%E2%9C%93-3b82f6?style=flat-square" alt="Manifest V3" />
   <img src="https://img.shields.io/badge/Chrome%20%C2%B7%20Edge%20%C2%B7%20Brave-Listo-0ea5e9?style=flat-square" alt="Navegadores" />
   <img src="https://img.shields.io/badge/Steam%20%C2%B7%20Epic%20%C2%B7%20Microsoft%20Store-3%20tiendas-7c3aed?style=flat-square" alt="Tiendas" />

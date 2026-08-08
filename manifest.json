@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "GameSniper — Cazador de oportunidades de juegos",
   "short_name": "GameSniper",
-  "version": "3.0.0",
+  "version": "4.1.0",
   "description": "Encuentra el precio más barato de cualquier juego en segundos. Compara Steam, Epic Games y Microsoft Store, detecta precios regionales mal configurados, posibles errores de precio y ofertas ocultas antes de que desaparezcan.",
   "action": {
     "default_popup": "popup.html",

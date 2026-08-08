@@ -15,8 +15,8 @@
   // stamp de build: se loguea en cada init para confirmar que el navegador corre
   // el código actualizado (un usuario con build vieja puede ver errores que ya
   // fueron corregidos en disco).
-  const BUILD_STAMP = 'gamesniper-offers-2026-08-08-v4-const-free'; // v4: auditoría completa — cero reasignaciones a const en el path del scan
-  const BUILD_LABEL = 'v4.0'; // etiqueta visible en el header (confirma la build sin consola)
+  const BUILD_STAMP = 'gamesniper-offers-2026-08-08-v4-1-lettering'; // v4.1: branding (letterings por tema) + popup rediseñado
+  const BUILD_LABEL = 'v4.1'; // etiqueta visible en el header (confirma la build sin consola)
 
   // ---------- reporte de errores (diagnóstico) ----------
   // Cualquier error que escape (o que se capture en los catches del scan) queda

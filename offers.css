@@ -122,10 +122,11 @@ body {
   display: grid; place-items: center;
 }
 .brand-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
-/* el nombre es la imagen pixelada del logo (fondo transparente); el alto define
-   el tamaño y el ancho se mantiene proporcional (894:175 ≈ 5.1:1) */
+/* el nombre es la imagen del logo (fondo transparente; variante por tema con
+   distinta proporción). El ANCHO es fijo para que el logo oscuro (4.2:1) y el
+   claro (5.1:1) se vean del mismo ancho; el alto escala proporcional. */
 .brand .gs-name {
-  height: 34px; width: auto; display: block;
+  width: 174px; height: auto; display: block;
   object-fit: contain; image-rendering: pixelated;
 }
 .brand p { color: var(--muted); font-size: 13px; margin-top: 5px; }
@@ -857,7 +858,7 @@ html.theme-transition *::after {
 .foot strong { color: var(--orange); }
 
 @media (max-width: 640px) {
-  .brand .gs-name { height: 26px; }
+  .brand .gs-name { width: 133px; }
   .topbar { justify-content: center; }
 }
 

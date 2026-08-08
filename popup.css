@@ -39,7 +39,7 @@
 }
 
 body {
-  width: 320px;
+  width: 430px;
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   /* separado en background-color (animable en el cambio de tema) + background-image
      (el radial-gradient con var no es transicionable; el color base sí hace fade) */
@@ -77,9 +77,11 @@ html.theme-transition *::after {
   width: 42px; height: 42px;
   object-fit: contain; flex-shrink: 0;
 }
-/* el nombre es la imagen pixelada del logo (fondo transparente) */
+/* el nombre es la imagen del logo (fondo transparente; variante por tema con
+   distinta proporción). El ANCHO es fijo para que el logo oscuro (4.2:1) y el
+   claro (5.1:1) se vean del mismo ancho; el alto escala proporcional. */
 .head .gs-name {
-  height: 24px; width: auto; display: block;
+  width: 123px; height: auto; display: block;
   object-fit: contain; image-rendering: pixelated;
 }
 
@@ -131,12 +133,17 @@ html.theme-transition *::after {
 }
 .q-row { line-height: 1.45; }
 .q-row b { color: var(--hot); }
-.q-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.q-chips { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
 .q-chip {
   font-size: 11px; padding: 3px 9px; border-radius: 999px;
   background: rgba(56,224,139,0.12); color: var(--ok); border: 1px solid rgba(56,224,139,0.3);
+  white-space: nowrap;
 }
-.q-chip.dim { background: var(--chip-bg); color: var(--muted); border-color: var(--line); }
+/* el timestamp va suelto (sin chip), fijo al borde derecho del panel */
+.q-time {
+  margin-left: auto; font-size: 11px; color: var(--muted);
+  white-space: nowrap; flex-shrink: 0;
+}
 .q-chip.warn { background: rgba(255,154,60,0.12); color: var(--orange); border-color: rgba(255,154,60,0.35); }
 .q-chip.free { background: rgba(196,163,255,0.14); color: #a78bfa; border-color: rgba(196,163,255,0.4); }
 [data-theme="light"] .q-chip.free { color: #7c3aed; border-color: rgba(124,58,237,0.35); }
@@ -171,4 +178,10 @@ html.theme-transition *::after {
 }
 .b-open:hover { background: rgba(255,154,60,.12); }
 
-.foot { text-align: center; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.foot {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  color: var(--muted); font-size: 11.5px; line-height: 1.5; white-space: nowrap;
+}
+.foot-logo { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
+.foot-name { font-weight: 800; color: var(--text); }
+.foot-tag { color: var(--muted); }

@@ -34,8 +34,10 @@
     // blanco sería invisible sobre fondo claro), anillo blanco en tema oscuro. El
     // nombre pixelado también tiene variante por tema ("Game" blanco/navy).
     const light = t === 'light';
-    const logo = document.querySelector('.head img.logo');
-    if (logo) logo.src = light ? 'icons/gamesniper-light.png' : 'icons/gamesniper.png';
+    // logo del header y del footer (miniatura) comparten el swap por tema
+    document.querySelectorAll('.logo').forEach((logo) => {
+      logo.src = light ? 'icons/gamesniper-light.png' : 'icons/gamesniper.png';
+    });
     const name = document.querySelector('.head img.gs-name');
     if (name) name.src = light ? 'icons/gamesniper-name-light.png' : 'icons/gamesniper-name.png';
   }
@@ -59,10 +61,6 @@
     }
     const bugs = c.games.filter((g) => g.bug).length;
     const total = c.games.length;
-    const ahorro = c.games.reduce((acc, r) => {
-      if (!r.bug || r.msArs == null || r.bestUsdArs == null) return acc;
-      return acc + Math.max(0, r.bestUsdArs - r.msArs);
-    }, 0);
 
     qLast.innerHTML = bugs > 0
       ? `Hay <b>${bugs}</b> juego${bugs === 1 ? '' : 's'} con precio bug en Microsoft Store 🤑`
@@ -79,8 +77,7 @@
       `<span class="q-chip">${total} juegos</span>`,
       `<span class="q-chip warn">${bugs} oportunidades</span>`,
       epicFree > 0 ? `<span class="q-chip free">🎁 Epic regala ${epicFree}</span>` : '',
-      `<span class="q-chip">Ahorro ≈ ${fmtMoney(ahorro)}</span>`,
-      `<span class="q-chip dim">${timeAgo(c.ts)}</span>`,
+      `<span class="q-time">${timeAgo(c.ts)}</span>`,
     ].join('');
 
     // mejor oportunidad del último scan (score más alto)
