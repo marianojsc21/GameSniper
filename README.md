@@ -16,6 +16,100 @@ Extensión de Chrome (Manifest V3) que encuentra **el precio más barato de cual
 
 No es solo un comparador: es una **herramienta inteligente de oportunidades**. Detecta cuándo un juego en Steam/Epic sale "unos dólares" pero en Microsoft Store tiene un precio **bugueado / argentinizado** y sale muchísimo más barato.
 
+## 📥 Instalación (modo desarrollador)
+
+> ⚠️ La extensión todavía no está en Chrome Web Store. Instalarla descomprimida toma un minuto y **no necesitás saber nada de GitHub ni de programación** para hacerlo — te guío paso a paso.
+
+### Qué es esto de GitHub (en 30 segundos)
+
+GitHub es una página donde se guarda el código de la extensión. **No tenés que crear una cuenta ni instalar ningún programa** para instalarla: solo vas a **descargar una carpeta** y cargarla en tu navegador. Las instrucciones de abajo son para Windows con Chrome (funcionan igual en Edge y Brave, con el mismo botón *Cargar descomprimida*).
+
+### 🟢 Camino A — Sin Git, solo con el navegador (recomendado)
+
+> Seguí los pasos **en orden**. Después de cada uno te digo **qué deberías ver** para confirmar que vas bien. Si algo no te sale, saltá directo a [Problemas comunes](#-problemas-comunes).
+
+**Paso 1 — Abrí la página del proyecto.**
+Abrí tu navegador y escribí esta dirección en la **barra de direcciones** (la barra blanca de arriba donde aparece la dirección de la página — no la confundas con el buscador):
+
+```
+github.com/marianojsc21/GameSniper
+```
+
+Apretá **Enter**. 👉 *Deberías ver la página del proyecto: el título "GameSniper — Cazador de oportunidades de juegos" y debajo una lista de archivos.*
+
+**Paso 2 — Descargá el código.**
+Arriba a la derecha, sobre la lista de archivos, está el botón **verde** `<> Code`. Tocálo con el **clic izquierdo**. Se abre un menú desplegable: tocá la opción **Download ZIP**. 👉 *Se descarga un archivo llamado `GameSniper-main.zip` (suele aparecer abajo a la izquierda del navegador). **No lo abras todavía.***
+
+![Paso 2 — el botón verde Code y la opción Download ZIP en la página del proyecto](docs/instalacion-github.png)
+
+**Paso 3 — Encontrá el archivo descargado.**
+Abrí el **Explorador de archivos** de Windows (tocá la carpeta 📁 de la barra de tareas, o apretá la tecla **Windows** y escribí *Explorador de archivos*). En el menú de la **izquierda** tocá **Descargas**. 👉 *Deberías ver `GameSniper-main.zip` (puede estar mezclado con otros archivos).*
+
+**Paso 4 — Descomprimí el ZIP.**
+Hacé **clic derecho** sobre `GameSniper-main.zip` → elegí **Extraer todo…** (*Extract All…* en inglés) → en la ventana que se abre tocá **Extraer** (dejá la ubicación que viene por defecto). 👉 *Aparece una carpeta nueva llamada `GameSniper-main` al lado del ZIP.*
+
+**Paso 5 — Entendé la estructura (el detalle más importante).**
+Hacé **doble clic** sobre la carpeta `GameSniper-main` para entrar. 👉 *Adentro hay **otra** carpeta llamada `ofertas-extension`. Esa es la que se instala en Chrome.* ⚠️ *Anotá esta ruta: `Descargas → GameSniper-main → ofertas-extension`. La vas a necesitar en el paso 8.*
+
+**Paso 6 — Abrí la página de extensiones.**
+En Chrome, abrí una **pestaña nueva** y escribí en la barra de direcciones (otra vez: la barra de arriba, no el buscador):
+
+```
+chrome://extensions
+```
+
+Apretá **Enter**. (En Edge: `edge://extensions`. En Brave: `brave://extensions`.) 👉 *Se abre la página de extensiones de tu navegador.*
+
+**Paso 7 — Activá el modo de desarrollador.**
+Arriba a la **derecha** de esa página hay un interruptor que dice **Modo de desarrollador**. Tocálo para encenderlo (queda azul/marcado). 👉 *Arriba a la izquierda aparecen botones nuevos, entre ellos **Cargar descomprimida**.*
+
+**Paso 8 — Cargá la carpeta de la extensión.**
+Tocá el botón **Cargar descomprimida** (*Load unpacked* en inglés). Se abre una ventana para elegir carpeta. Navegá hasta `Descargas → GameSniper-main`, tocá **una sola vez** sobre la carpeta `ofertas-extension` (queda resaltada) y tocá el botón **Seleccionar carpeta** (o *Select Folder*). ⚠️ *Si elegís la carpeta `GameSniper-main` o `Descargas` directamente, te va a salir el error "Falta el archivo de manifiesto". Siempre la `ofertas-extension`, la que está **dentro** de `GameSniper-main`.*
+
+**Paso 9 — Verificá que se instaló.**
+👉 *Aparece una tarjeta nueva en la página de extensiones con el nombre "GameSniper — Cazador de oportunidades de juegos", la versión y el ícono. Si la ves, ya está instalada.*
+
+**Paso 10 — Fijá el ícono en la barra del navegador.**
+Mirá la barra superior del navegador, a la derecha de la barra de direcciones. Si **no** ves el ícono de GameSniper, tocá el ícono de **rompecabezas 🧩** → buscá "GameSniper" en la lista → tocá el **alfiler 📌** que está al lado para fijarlo. 👉 *El ícono de GameSniper queda visible en la barra.*
+
+**Paso 11 — Usala por primera vez.**
+Tocá el **ícono de GameSniper** que fijaste en el paso 10. Se abre el popup de la extensión. Tocá el botón **VER OPORTUNIDADES**. 👉 *Se abre la página de ofertas y empieza a escanear precios en Steam, Epic y Microsoft Store. La primera vez tarda unos segundos; después usa caché y es casi instantáneo.*
+
+**Paso 12 — (Opcional) Actualizar cuando haya versiones nuevas.**
+Repetí los pasos 2 a 4 (volvé a descargar y extraer el ZIP; la carpeta nueva reemplaza a la vieja con el mismo nombre). Después, en `chrome://extensions`, tocá el botón **↻** (recargar) que está en la tarjeta de GameSniper. 👉 *La extensión queda actualizada sin perder tus preferencias.*
+
+> 📦 **¿Descargaste el ZIP desde "Releases" (GameSniper-v4.1.0.zip) en vez del botón Code?** Ese ZIP tiene otra estructura: el `manifest.json` está **directamente** dentro de la carpeta extraída (no hay `ofertas-extension` adentro). Entonces en el paso 8 elegís la carpeta extraída tal cual, sin entrar a ninguna subcarpeta.
+
+### 🔵 Camino B — Con Git (para los que quieren actualizaciones fáciles)
+
+Si ya usás Git (o querés aprender), además podés clonar el proyecto y actualizarlo con un solo comando cuando haya versiones nuevas. Abrí una terminal (en Windows: apretá **Windows** y escribí *cmd* o *PowerShell*) y escribí:
+
+```bash
+git clone https://github.com/marianojsc21/GameSniper.git
+```
+
+Después, para actualizar a la última versión:
+
+```bash
+cd GameSniper
+git pull
+```
+
+Y recargás la extensión en `chrome://extensions` (botón ↻). Con el Camino A (ZIP) tenés que volver a descargar el ZIP en cada actualización; con Git es un solo comando.
+
+### 🆘 Problemas comunes
+
+| Qué ves | Por qué pasa | Solución |
+|---|---|---|
+| **"Falta el archivo de manifiesto o no se puede leer"** | Elegiste la carpeta equivocada en el paso 8 | Seleccioná la carpeta **`ofertas-extension`** (la que contiene el `manifest.json`), no la `GameSniper-main` ni `Descargas` |
+| **No veo el botón "Cargar descomprimida"** | El modo de desarrollador está apagado | Activá el interruptor **Modo de desarrollador** (paso 7) — sin eso el botón no existe |
+| **No veo el ícono de GameSniper en la barra** | El ícono está oculto en el menú 🧩 | Tocá el rompecabezas 🧩 y fijá GameSniper con el alfiler 📌 (paso 10) |
+| **Chrome no me deja cargar la carpeta ("La extensión está dañada")** | Se seleccionó el ZIP sin extraer, o la extracción quedó incompleta | Extraé el ZIP primero (paso 4) y elegí la carpeta extraída, nunca el archivo `.zip` |
+| **La extensión carga pero no muestra precios** | Es el primer escaneo o no hay internet | Esperá unos segundos; si sigue, tocá **↻ Actualizar** en la página de ofertas y fijate que tengas conexión |
+| **Después de actualizar veo la versión vieja** | Chrome no recargó la extensión | En `chrome://extensions` tocá el botón **↻** de la tarjeta de GameSniper; si no, cerrá y abrí el navegador |
+
+> 💻 **¿Usás Mac?** El proceso es el mismo, con dos diferencias: para descomprimir hacé **doble clic** sobre el ZIP (macOS lo extrae solo) y el botón del navegador se llama igual (*Load unpacked* / *Cargar descomprimida*).
+
 ## 📸 Vista previa
 
 ![GameSniper — página de ofertas](screenshot.png)
@@ -143,100 +237,6 @@ La extensión **prefiere ocultar datos dudosos antes que mostrar información en
 3. Sumar el `host_permission` en `manifest.json`.
 
 El resto del código (página, popup, content script, notificaciones) lo consume dinámicamente sin cambios.
-
-## 📥 Instalación (modo desarrollador)
-
-> ⚠️ La extensión todavía no está en Chrome Web Store. Instalarla descomprimida toma un minuto y **no necesitás saber nada de GitHub ni de programación** para hacerlo — te guío paso a paso.
-
-### Qué es esto de GitHub (en 30 segundos)
-
-GitHub es una página donde se guarda el código de la extensión. **No tenés que crear una cuenta ni instalar ningún programa** para instalarla: solo vas a **descargar una carpeta** y cargarla en tu navegador. Las instrucciones de abajo son para Windows con Chrome (funcionan igual en Edge y Brave, con el mismo botón *Cargar descomprimida*).
-
-### 🟢 Camino A — Sin Git, solo con el navegador (recomendado)
-
-> Seguí los pasos **en orden**. Después de cada uno te digo **qué deberías ver** para confirmar que vas bien. Si algo no te sale, saltá directo a [Problemas comunes](#-problemas-comunes).
-
-**Paso 1 — Abrí la página del proyecto.**
-Abrí tu navegador y escribí esta dirección en la **barra de direcciones** (la barra blanca de arriba donde aparece la dirección de la página — no la confundas con el buscador):
-
-```
-github.com/marianojsc21/GameSniper
-```
-
-Apretá **Enter**. 👉 *Deberías ver la página del proyecto: el título "GameSniper — Cazador de oportunidades de juegos" y debajo una lista de archivos.*
-
-**Paso 2 — Descargá el código.**
-Arriba a la derecha, sobre la lista de archivos, está el botón **verde** `<> Code`. Tocálo con el **clic izquierdo**. Se abre un menú desplegable: tocá la opción **Download ZIP**. 👉 *Se descarga un archivo llamado `GameSniper-main.zip` (suele aparecer abajo a la izquierda del navegador). **No lo abras todavía.***
-
-![Paso 2 — el botón verde Code y la opción Download ZIP en la página del proyecto](docs/instalacion-github.png)
-
-**Paso 3 — Encontrá el archivo descargado.**
-Abrí el **Explorador de archivos** de Windows (tocá la carpeta 📁 de la barra de tareas, o apretá la tecla **Windows** y escribí *Explorador de archivos*). En el menú de la **izquierda** tocá **Descargas**. 👉 *Deberías ver `GameSniper-main.zip` (puede estar mezclado con otros archivos).*
-
-**Paso 4 — Descomprimí el ZIP.**
-Hacé **clic derecho** sobre `GameSniper-main.zip` → elegí **Extraer todo…** (*Extract All…* en inglés) → en la ventana que se abre tocá **Extraer** (dejá la ubicación que viene por defecto). 👉 *Aparece una carpeta nueva llamada `GameSniper-main` al lado del ZIP.*
-
-**Paso 5 — Entendé la estructura (el detalle más importante).**
-Hacé **doble clic** sobre la carpeta `GameSniper-main` para entrar. 👉 *Adentro hay **otra** carpeta llamada `ofertas-extension`. Esa es la que se instala en Chrome.* ⚠️ *Anotá esta ruta: `Descargas → GameSniper-main → ofertas-extension`. La vas a necesitar en el paso 8.*
-
-**Paso 6 — Abrí la página de extensiones.**
-En Chrome, abrí una **pestaña nueva** y escribí en la barra de direcciones (otra vez: la barra de arriba, no el buscador):
-
-```
-chrome://extensions
-```
-
-Apretá **Enter**. (En Edge: `edge://extensions`. En Brave: `brave://extensions`.) 👉 *Se abre la página de extensiones de tu navegador.*
-
-**Paso 7 — Activá el modo de desarrollador.**
-Arriba a la **derecha** de esa página hay un interruptor que dice **Modo de desarrollador**. Tocálo para encenderlo (queda azul/marcado). 👉 *Arriba a la izquierda aparecen botones nuevos, entre ellos **Cargar descomprimida**.*
-
-**Paso 8 — Cargá la carpeta de la extensión.**
-Tocá el botón **Cargar descomprimida** (*Load unpacked* en inglés). Se abre una ventana para elegir carpeta. Navegá hasta `Descargas → GameSniper-main`, tocá **una sola vez** sobre la carpeta `ofertas-extension` (queda resaltada) y tocá el botón **Seleccionar carpeta** (o *Select Folder*). ⚠️ *Si elegís la carpeta `GameSniper-main` o `Descargas` directamente, te va a salir el error "Falta el archivo de manifiesto". Siempre la `ofertas-extension`, la que está **dentro** de `GameSniper-main`.*
-
-**Paso 9 — Verificá que se instaló.**
-👉 *Aparece una tarjeta nueva en la página de extensiones con el nombre "GameSniper — Cazador de oportunidades de juegos", la versión y el ícono. Si la ves, ya está instalada.*
-
-**Paso 10 — Fijá el ícono en la barra del navegador.**
-Mirá la barra superior del navegador, a la derecha de la barra de direcciones. Si **no** ves el ícono de GameSniper, tocá el ícono de **rompecabezas 🧩** → buscá "GameSniper" en la lista → tocá el **alfiler 📌** que está al lado para fijarlo. 👉 *El ícono de GameSniper queda visible en la barra.*
-
-**Paso 11 — Usala por primera vez.**
-Tocá el **ícono de GameSniper** que fijaste en el paso 10. Se abre el popup de la extensión. Tocá el botón **VER OPORTUNIDADES**. 👉 *Se abre la página de ofertas y empieza a escanear precios en Steam, Epic y Microsoft Store. La primera vez tarda unos segundos; después usa caché y es casi instantáneo.*
-
-**Paso 12 — (Opcional) Actualizar cuando haya versiones nuevas.**
-Repetí los pasos 2 a 4 (volvé a descargar y extraer el ZIP; la carpeta nueva reemplaza a la vieja con el mismo nombre). Después, en `chrome://extensions`, tocá el botón **↻** (recargar) que está en la tarjeta de GameSniper. 👉 *La extensión queda actualizada sin perder tus preferencias.*
-
-> 📦 **¿Descargaste el ZIP desde "Releases" (GameSniper-v4.1.0.zip) en vez del botón Code?** Ese ZIP tiene otra estructura: el `manifest.json` está **directamente** dentro de la carpeta extraída (no hay `ofertas-extension` adentro). Entonces en el paso 8 elegís la carpeta extraída tal cual, sin entrar a ninguna subcarpeta.
-
-### 🔵 Camino B — Con Git (para los que quieren actualizaciones fáciles)
-
-Si ya usás Git (o querés aprender), además podés clonar el proyecto y actualizarlo con un solo comando cuando haya versiones nuevas. Abrí una terminal (en Windows: apretá **Windows** y escribí *cmd* o *PowerShell*) y escribí:
-
-```bash
-git clone https://github.com/marianojsc21/GameSniper.git
-```
-
-Después, para actualizar a la última versión:
-
-```bash
-cd GameSniper
-git pull
-```
-
-Y recargás la extensión en `chrome://extensions` (botón ↻). Con el Camino A (ZIP) tenés que volver a descargar el ZIP en cada actualización; con Git es un solo comando.
-
-### 🆘 Problemas comunes
-
-| Qué ves | Por qué pasa | Solución |
-|---|---|---|
-| **"Falta el archivo de manifiesto o no se puede leer"** | Elegiste la carpeta equivocada en el paso 8 | Seleccioná la carpeta **`ofertas-extension`** (la que contiene el `manifest.json`), no la `GameSniper-main` ni `Descargas` |
-| **No veo el botón "Cargar descomprimida"** | El modo de desarrollador está apagado | Activá el interruptor **Modo de desarrollador** (paso 7) — sin eso el botón no existe |
-| **No veo el ícono de GameSniper en la barra** | El ícono está oculto en el menú 🧩 | Tocá el rompecabezas 🧩 y fijá GameSniper con el alfiler 📌 (paso 10) |
-| **Chrome no me deja cargar la carpeta ("La extensión está dañada")** | Se seleccionó el ZIP sin extraer, o la extracción quedó incompleta | Extraé el ZIP primero (paso 4) y elegí la carpeta extraída, nunca el archivo `.zip` |
-| **La extensión carga pero no muestra precios** | Es el primer escaneo o no hay internet | Esperá unos segundos; si sigue, tocá **↻ Actualizar** en la página de ofertas y fijate que tengas conexión |
-| **Después de actualizar veo la versión vieja** | Chrome no recargó la extensión | En `chrome://extensions` tocá el botón **↻** de la tarjeta de GameSniper; si no, cerrá y abrí el navegador |
-
-> 💻 **¿Usás Mac?** El proceso es el mismo, con dos diferencias: para descomprimir hacé **doble clic** sobre el ZIP (macOS lo extrae solo) y el botón del navegador se llama igual (*Load unpacked* / *Cargar descomprimida*).
 
 ## Notas
 
